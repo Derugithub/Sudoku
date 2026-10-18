@@ -67,3 +67,18 @@ test('the bundled fallback set is valid for every level', () => {
     }
   }
 });
+
+test('symmetry transforms keep one solution and the same level', async () => {
+  const { transformPuzzle } = await import('../src/sudoku/transform.ts');
+  for (const level of LEVELS) {
+    const [g, s] = FALLBACK_PUZZLES[level][0];
+    for (let seed = 1; seed <= 3; seed++) {
+      const out = transformPuzzle(g, s, mulberry32(seed));
+      const grid = parseGrid(out.givens);
+      assert.equal(countSolutions(grid, 2), 1);
+      assert.equal(grade(grid).level, level);
+      assert.equal(grid.filter(Boolean).length, parseGrid(g).filter(Boolean).length);
+      for (let i = 0; i < 81; i++) if (grid[i]) assert.equal(grid[i], Number(out.solution[i]));
+    }
+  }
+});

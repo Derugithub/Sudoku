@@ -38,7 +38,7 @@ export const en = {
   'time.minutes': '{m} min left',
 
   'game.mistakes': 'Mistakes {n}/{max}',
-  'game.mistakesOff': 'Mistakes off',
+  'game.mistakesCount': 'Mistakes {n}',
   'game.pause': 'Pause',
   'game.paused': 'Paused',
   'game.resume': 'Resume',
