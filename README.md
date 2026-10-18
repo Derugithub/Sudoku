@@ -1,4 +1,4 @@
-# Sudoku Zen
+# Sudoku Calm
 
 A calm, offline Sudoku game for Android, built with Expo (SDK 57) and React Native.
 
@@ -8,7 +8,7 @@ A calm, offline Sudoku game for Android, built with Expo (SDK 57) and React Nati
 - Hints that teach the technique instead of just filling a cell.
 - No account, no network needed to play.
 
-Package `com.deredo.sudokuzen`. Privacy policy: https://derugithub.github.io/Privacy-policy/sudokuzen/
+Package `com.deredo.sudokucalm`. Privacy policy: https://derugithub.github.io/Privacy-policy/sudoku-calm/
 
 ## License
 
