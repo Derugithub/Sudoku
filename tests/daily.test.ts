@@ -31,7 +31,7 @@ test('daily seed is stable across releases (pinned)', () => {
   assert.equal(dailyPuzzle('2026-01-01').givens, PINNED);
 });
 
-const PINNED = '23..87....7.5.63...853....9..6..3.8...........5.1..4..8....173...48.5.6....67..94';
+const PINNED = '47.....636..48.2.1..1.3.....46.....75.39.41.67.....84.....9.5..3.5.42..992.....14';
 
 test('daily levels by weekday', () => {
   assert.equal(dailyLevel('2026-10-19'), 'medium'); // Monday

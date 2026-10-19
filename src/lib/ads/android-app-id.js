@@ -6,7 +6,7 @@ const path = require('path');
 const ADMOB_ANDROID_APP_ID_PLACEHOLDER = 'ca-app-pub-XXXXXXXX~YYYYYYYY';
 
 /**
- * The real Sudoku Calm AdMob Android app ID (publisher pub-4342572133101591).
+ * The real Sudoku AdMob Android app ID (publisher pub-4342572133101591).
  * Keep it in sync with app.json (plugin androidAppId and root android_app_id) and the eas.json
  * production env ADMOB_ANDROID_APP_ID.
  */
@@ -63,7 +63,7 @@ function resolveAndroidAppId(input) {
   if (isGoogleSampleAppId(id)) {
     if (input.liveUnitsEnabled) {
       throw new Error(
-        `${source} is still Google's sample app ID. Set the real Sudoku Calm AdMob app ID before enabling real ad units.`,
+        `${source} is still Google's sample app ID. Set the real Sudoku AdMob app ID before enabling real ad units.`,
       );
     }
     return id;

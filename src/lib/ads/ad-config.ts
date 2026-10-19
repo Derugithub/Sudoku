@@ -1,5 +1,5 @@
 /** Hosted privacy policy, linked from Settings. The page still has to be published. */
-export const PRIVACY_POLICY_URL = 'https://derugithub.github.io/Privacy-policy/sudoku-calm/';
+export const PRIVACY_POLICY_URL = 'https://derugithub.github.io/Privacy-policy/sudoku/';
 
 /** Support address shown in Settings and the store notes. */
 export const SUPPORT_EMAIL = 'movadmob@gmail.com';

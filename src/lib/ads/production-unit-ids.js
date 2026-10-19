@@ -4,7 +4,7 @@
  * CLOSED TESTING: real ad units are OFF. Every build, production included, requests Google's
  * test units (TestIds).
  *
- * The Sudoku Calm AdMob app (ca-app-pub-4342572133101591~8389629390) and its three units exist,
+ * The Sudoku AdMob app (ca-app-pub-4342572133101591~8389629390) and its three units exist,
  * and the real app ID is already set in android-app-id.js, app.json and eas.json.
  *
  * To turn on real ads at the public release:

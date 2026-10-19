@@ -1,16 +1,16 @@
 {
   "expo": {
     "name": "Sudoku",
-    "slug": "sudoku-calm",
+    "slug": "sudoku",
     "owner": "deredo",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
-    "scheme": "sudokucalm",
+    "scheme": "sudoku",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#F7F5F0",
     "android": {
-      "package": "com.deredo.sudokucalm",
+      "package": "com.deredo.sudoku",
       "adaptiveIcon": {
         "backgroundColor": "#FBF7EC",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -18,7 +18,9 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["com.google.android.gms.permission.AD_ID"]
+      "permissions": [
+        "com.google.android.gms.permission.AD_ID"
+      ]
     },
     "web": {
       "output": "single",
@@ -73,8 +75,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "4aaf4c7f-af23-477e-98c5-70c88a6b2dfe"
-      }
+        "projectId": "21f46792-d658-474a-a3e4-cef6b831b1ed"
+      },
+      "adsMode": "test",
+      "router": {}
     }
   },
   "react-native-google-mobile-ads": {

@@ -1,14 +1,14 @@
 /** Key-value persistence on expo-sqlite's kv-store. Failures never throw into the UI. */
 
 export const KEYS = {
-  settings: 'sudokucalm.settings.v1',
-  stats: 'sudokucalm.stats.v1',
-  daily: 'sudokucalm.daily.v1',
-  game: 'sudokucalm.game.v1',
-  buffer: 'sudokucalm.buffer.v1',
-  ads: 'sudokucalm.ads.v1',
-  review: 'sudokucalm.review.v1',
-  fallbackCursor: 'sudokucalm.fallback.v1',
+  settings: 'sudoku.settings.v1',
+  stats: 'sudoku.stats.v1',
+  daily: 'sudoku.daily.v1',
+  game: 'sudoku.game.v1',
+  buffer: 'sudoku.buffer.v1',
+  ads: 'sudoku.ads.v1',
+  review: 'sudoku.review.v1',
+  fallbackCursor: 'sudoku.fallback.v1',
 } as const;
 
 type Kv = {

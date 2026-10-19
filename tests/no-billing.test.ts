@@ -1,4 +1,4 @@
-// Sudoku Calm has no Pro version and no in-app purchases. The rewarded ad-free pass is the only way to hide ads.
+// Sudoku has no Pro version and no in-app purchases. The rewarded ad-free pass is the only way to hide ads.
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';

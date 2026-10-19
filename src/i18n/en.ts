@@ -150,7 +150,7 @@ export const en = {
   'settings.privacy': 'Privacy policy',
   'settings.privacyOptions': 'Ad privacy choices',
   'settings.support': 'Contact support',
-  'settings.rate': 'Rate Sudoku Calm',
+  'settings.rate': 'Rate Sudoku',
   'settings.version': 'Version {v}',
 
   'unit.row': 'row {n}',

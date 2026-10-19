@@ -1,9 +1,10 @@
-# Sudoku Calm
+# Sudoku
 
-**Sudoku Calm: Classic Puzzles** is a calm, offline Sudoku game for Android, built with Expo (SDK 57) and React Native.
+**Sudoku** is a calm, offline Sudoku game for Android, built with Expo (SDK 57) and React Native.
 
-Package `com.deredo.sudokucalm` · slug `sudoku-calm` · scheme `sudokucalm` · Expo project `@deredo/sudoku-calm`
-Privacy policy: https://derugithub.github.io/Privacy-policy/sudoku-calm/ · Support: movadmob@gmail.com
+Package `com.deredo.sudoku` · slug `sudoku` · scheme `sudoku` · Expo project `@deredo/sudoku`
+
+Privacy policy: https://derugithub.github.io/Privacy-policy/sudoku/ · Support: movadmob@gmail.com
 
 ## Features
 
