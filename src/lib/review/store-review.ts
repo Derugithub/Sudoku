@@ -12,7 +12,7 @@ import {
 } from '@/lib/review/review-policy';
 import { KEYS, readRaw, writeRaw } from '@/lib/storage';
 
-const FALLBACK_PACKAGE = 'com.deredo.sudokucalm';
+const FALLBACK_PACKAGE = 'com.deredo.sudoku';
 
 function appPackage(): string {
   const pkg = Constants.expoConfig?.android?.package;

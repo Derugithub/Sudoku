@@ -7,7 +7,7 @@ import type { Level } from './grader';
 import { rngFromString } from './rng';
 
 /** Bump only with a deliberate puzzle change: it changes every daily puzzle. */
-export const DAILY_SEED_VERSION = 'sudoku-calm-daily-v1';
+export const DAILY_SEED_VERSION = 'sudoku-daily-v1';
 /** How far back a missed day can be unlocked with a rewarded ad. */
 export const MISSED_DAY_WINDOW = 30;
 

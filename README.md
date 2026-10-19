@@ -2,11 +2,9 @@
 
 **Sudoku** is a calm, offline Sudoku game for Android, built with Expo (SDK 57) and React Native.
 
-Package `com.deredo.sudokucalm` · slug `sudoku-calm` · scheme `sudokucalm` · Expo project `@deredo/sudoku-calm`
+Package `com.deredo.sudoku` · slug `sudoku` · scheme `sudoku` · Expo project `@deredo/sudoku`
 
-The app is named **Sudoku** everywhere a player sees it. The package, slug, scheme, saved-data keys and daily-puzzle seed keep their original `sudokucalm` / `sudoku-calm` values on purpose: changing them would break the Play listing, the Expo project link, players' saved progress and the daily puzzles.
-
-Privacy policy: https://derugithub.github.io/Privacy-policy/sudoku-calm/ · Support: movadmob@gmail.com
+Privacy policy: https://derugithub.github.io/Privacy-policy/sudoku/ · Support: movadmob@gmail.com
 
 ## Features
 
