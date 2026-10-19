@@ -105,7 +105,6 @@ function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((p
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const options: PlayOptions = {
-    mistakeCheck: settings.mistakeCheck,
     autoRemoveNotes: settings.autoRemoveNotes,
   };
   const fb = { sound: settings.sound, vibration: settings.vibration };
@@ -444,11 +443,9 @@ function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((p
         <TopIcon icon="settings-outline" label={t('game.settings')} color={p.topIcon} target={iconTarget} onPress={openSettings} disabled={leaving} />
       </View>
       <View style={[styles.statBar, { paddingLeft: margin, paddingRight: Math.max(0, margin - 10) }]}>
-        {settings.mistakeCheck ? (
-          <AppText variant="label" color={game.mistakes > 0 ? p.errorText : p.textMuted}>
-            {t('game.mistakes', { n: game.mistakes, max: MISTAKE_LIMIT })}
-          </AppText>
-        ) : null}
+        <AppText variant="label" color={game.mistakes > 0 ? p.errorText : p.textMuted}>
+          {t('game.mistakes', { n: game.mistakes, max: MISTAKE_LIMIT })}
+        </AppText>
         <View style={styles.flex} />
         {settings.showTimer ? (
           <AppText variant="bodyMedium" style={styles.timer} accessibilityLabel={formatTime(game.elapsedMs)}>

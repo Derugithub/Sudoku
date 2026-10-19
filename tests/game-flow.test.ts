@@ -4,7 +4,7 @@ import { countsAsFinished, mayConsiderInterstitial, needsConfirmation, outOfMist
 import { newGame, place, restart, secondChance, toggleNote, type PlayOptions } from '../src/sudoku/game.ts';
 import { CLASSIC, CLASSIC_SOLUTION } from './helpers.ts';
 
-const OPTS: PlayOptions = { mistakeCheck: true, autoRemoveNotes: true };
+const OPTS: PlayOptions = { autoRemoveNotes: true };
 const fresh = (daily: string | null = null) =>
   newGame({ id: 'g', level: 'hard', givens: CLASSIC, solution: CLASSIC_SOLUTION, daily, now: 1 });
 const lose = (g: ReturnType<typeof fresh>) => {

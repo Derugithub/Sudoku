@@ -134,7 +134,7 @@ export const en = {
   'input.number': 'Number first',
   'settings.inputHelp': 'Cell first: tap a cell, then a number. Number first: pick a number, then tap cells.',
   'settings.mistakeCheck': 'Show mistakes',
-  'settings.mistakeCheckHelp': 'Wrong numbers turn red and count as mistakes. Three mistakes end the game.',
+  'settings.mistakeCheckHelp': 'Mark wrong numbers in red. This only changes the look: every wrong number still counts as a mistake, and three mistakes end the game.',
   'settings.highlightUnits': 'Highlight row, column and box',
   'settings.highlightSame': 'Highlight same numbers',
   'settings.autoRemoveNotes': 'Auto-remove notes',

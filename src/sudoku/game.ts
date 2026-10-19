@@ -40,8 +40,6 @@ export type GameState = {
 };
 
 export type PlayOptions = {
-  /** Count and show wrong digits. Three counted mistakes end the game. */
-  mistakeCheck: boolean;
   /** Placing a digit removes it from the notes in the same row, column and box. */
   autoRemoveNotes: boolean;
 };
@@ -150,7 +148,8 @@ export function place(state: GameState, cell: number, digit: number, options: Pl
   let next = writeDigit({ ...state, history: pushHistory(state) }, cell, digit, options.autoRemoveNotes);
   const wrong = digit !== solutionAt(state, cell);
   const events: GameEvents = { placed: { cell, digit }, completedUnits: [] };
-  if (wrong && options.mistakeCheck) {
+  // Every wrong digit counts, whatever the display settings: the limit cannot be switched off.
+  if (wrong) {
     next = { ...next, mistakes: next.mistakes + 1 };
     events.mistake = true;
     if (next.mistakes >= MISTAKE_LIMIT) {

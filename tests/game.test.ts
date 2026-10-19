@@ -26,7 +26,7 @@ import { bit } from '../src/sudoku/grid.ts';
 import { findHint } from '../src/sudoku/hints.ts';
 import { CLASSIC, CLASSIC_SOLUTION } from './helpers.ts';
 
-const OPTS: PlayOptions = { mistakeCheck: true, autoRemoveNotes: true };
+const OPTS: PlayOptions = { autoRemoveNotes: true };
 const fresh = () => newGame({ id: 'g', level: 'medium', givens: CLASSIC, solution: CLASSIC_SOLUTION, now: 1000 });
 
 test('placing a digit removes it from notes in the same row, column and box', () => {
@@ -95,11 +95,18 @@ test('three mistakes lose the game; one second chance continues with one to spar
   assert.equal(canSecondChance(g), false);
 });
 
-test('mistake check off: wrong digits are not counted', () => {
+test('show-mistakes off: a wrong entry still counts and the limit still applies', () => {
+  // "Show mistakes" is display-only; the game rules never see it.
+  assert.deepEqual(Object.keys(OPTS), ['autoRemoveNotes']);
   let g = fresh();
-  for (const d of [1, 2, 3]) g = place(g, 2, d, { ...OPTS, mistakeCheck: false }).state;
-  assert.equal(g.mistakes, 0);
-  assert.equal(g.status, 'playing');
+  const r = place(g, 2, 1, OPTS); // wrong (r1c3 is 4)
+  assert.equal(r.events.mistake, true);
+  assert.equal(r.state.mistakes, 1);
+  g = r.state;
+  for (const d of [2, 3]) g = place(g, 2, d, OPTS).state;
+  assert.equal(g.mistakes, 3);
+  assert.equal(g.status, 'lost');
+  assert.equal(canSecondChance(g), true);
 });
 
 test('remaining counts drop with correct digits only', () => {
