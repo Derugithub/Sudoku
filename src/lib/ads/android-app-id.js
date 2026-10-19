@@ -6,12 +6,11 @@ const path = require('path');
 const ADMOB_ANDROID_APP_ID_PLACEHOLDER = 'ca-app-pub-XXXXXXXX~YYYYYYYY';
 
 /**
- * TEMPORARY: Google's sample AdMob Android app ID.
- * Sudoku Calm has no AdMob app yet. Replace this with the real Sudoku Calm app ID from the AdMob
- * account (publisher pub-4342572133101591) before release, here, in app.json (plugin androidAppId
- * and root android_app_id) and in the eas.json production env ADMOB_ANDROID_APP_ID.
+ * The real Sudoku Calm AdMob Android app ID (publisher pub-4342572133101591).
+ * Keep it in sync with app.json (plugin androidAppId and root android_app_id) and the eas.json
+ * production env ADMOB_ANDROID_APP_ID.
  */
-const ADMOB_ANDROID_APP_ID = 'ca-app-pub-3940256099942544~3347511713';
+const ADMOB_ANDROID_APP_ID = 'ca-app-pub-4342572133101591~8389629390';
 
 /** Google's sample publisher. Allowed only while every ad unit is a Google test unit. */
 const GOOGLE_SAMPLE_PUBLISHER = 'ca-app-pub-3940256099942544';
