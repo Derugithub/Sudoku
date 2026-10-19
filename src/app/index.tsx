@@ -79,9 +79,18 @@ export default function Home() {
 
 // The same artwork as the launcher icon, so the home screen always matches it.
 const APP_ICON = require('../../assets/images/icon.png');
+// Light-on-transparent version of the mark for dark themes, shown on a dark tile.
+const MARK_DARK = require('../../assets/images/logo-mark-dark.png');
 
 function Logo() {
   const p = usePalette();
+  if (p.dark) {
+    return (
+      <View style={[styles.logo, styles.logoTile, { backgroundColor: p.surface, borderColor: p.border }]} importantForAccessibility="no-hide-descendants">
+        <Image source={MARK_DARK} style={styles.logoMark} accessibilityIgnoresInvertColors />
+      </View>
+    );
+  }
   return (
     <Image
       source={APP_ICON}
@@ -100,5 +109,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   daily: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, padding: SPACE.lg, borderRadius: RADIUS.lg, borderWidth: 1, minHeight: 72 },
   dailyIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  logo: { width: 88, height: 88, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, marginBottom: SPACE.sm },
+  logo: { width: 96, height: 96, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, marginBottom: SPACE.sm },
+  logoTile: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  logoMark: { width: 72, height: 72 },
 });
