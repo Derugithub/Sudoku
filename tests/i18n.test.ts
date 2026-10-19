@@ -15,5 +15,5 @@ test('every technique and level has a name, English only in v1', () => {
   for (const tech of Object.keys(TECHNIQUE_TIER)) assert.ok(keys.includes(`technique.${tech}`), tech);
   for (const level of LEVELS) assert.ok(keys.includes(`level.${level}`) && keys.includes(`levelInfo.${level}`));
   assert.deepEqual(LANGUAGES.map((l) => l.code), ['en']);
-  assert.equal(t('app.name'), 'Sudoku Calm');
+  assert.equal(t('app.name'), 'Sudoku');
 });

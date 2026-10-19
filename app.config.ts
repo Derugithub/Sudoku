@@ -50,7 +50,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: config.name ?? 'Sudoku Calm',
+    name: config.name ?? 'Sudoku',
     slug: config.slug ?? 'sudoku-calm',
     plugins,
     extra: {

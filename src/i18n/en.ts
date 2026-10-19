@@ -1,6 +1,6 @@
 /** English strings. Every UI string lives here; other languages add a file with the same keys. */
 export const en = {
-  'app.name': 'Sudoku Calm',
+  'app.name': 'Sudoku',
   'app.tagline': 'Classic puzzles, calm mind.',
 
   'level.easy': 'Easy',

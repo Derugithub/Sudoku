@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AdFreeButton } from '@/components/ad-free-button';
 import { MenuBanner } from '@/components/ad-banner';
@@ -77,13 +77,20 @@ export default function Home() {
   );
 }
 
+// The bare Sudoku Calm mark (no tile), with @2x/@3x versions picked by screen density.
+const LOGO_LIGHT = require('../../assets/images/logo-mark.png');
+const LOGO_DARK = require('../../assets/images/logo-mark-dark.png');
+
 function Logo() {
+  const p = usePalette();
   return (
-    <View style={[styles.logo, { backgroundColor: '#2B2D42' }]} importantForAccessibility="no-hide-descendants">
-      {Array.from({ length: 9 }, (_, i) => (
-        <View key={i} style={[styles.logoCell, { backgroundColor: i === 4 ? '#7FB3E8' : 'transparent', borderColor: '#F7F5F0' }]} />
-      ))}
-    </View>
+    <Image
+      source={p.dark ? LOGO_DARK : LOGO_LIGHT}
+      style={styles.logo}
+      resizeMode="contain"
+      accessibilityIgnoresInvertColors
+      importantForAccessibility="no"
+    />
   );
 }
 
@@ -95,6 +102,5 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   daily: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, padding: SPACE.lg, borderRadius: RADIUS.lg, borderWidth: 1, minHeight: 72 },
   dailyIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  logo: { width: 72, height: 72, borderRadius: 18, flexDirection: 'row', flexWrap: 'wrap', padding: 12, marginBottom: SPACE.sm },
-  logoCell: { width: 16, height: 16, borderWidth: 1.5 },
+  logo: { width: 112, height: 112, marginBottom: SPACE.sm },
 });
