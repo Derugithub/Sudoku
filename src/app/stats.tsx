@@ -41,7 +41,7 @@ export default function Stats() {
               </View>
               {rows.map(([label, value]) => (
                 <View key={label} style={styles.row} accessible accessibilityLabel={`${label}: ${value}`}>
-                  <AppText variant="body" color={p.textMuted} style={styles.label}>
+                  <AppText variant="body" color={p.textMuted} style={styles.label} numberOfLines={2}>
                     {label}
                   </AppText>
                   <AppText variant="bodyMedium" style={styles.value}>
@@ -64,6 +64,9 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, marginBottom: SPACE.xs },
   dot: { width: 10, height: 10, borderRadius: 5 },
   row: { flexDirection: 'row', justifyContent: 'space-between', minHeight: 28, alignItems: 'center', gap: SPACE.md },
-  label: { flexShrink: 1 },
-  value: { fontVariant: ['tabular-nums'] },
+  // The label takes all the spare width instead of shrinking to its measured size. On Android,
+  // a shrink-to-fit label can measure a few pixels short with Inter, wrap its last word and clip it
+  // ("Win streak" showed as "Win").
+  label: { flex: 1 },
+  value: { flexShrink: 0, textAlign: 'right', fontVariant: ['tabular-nums'] },
 });
