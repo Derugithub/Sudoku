@@ -4,16 +4,12 @@
  * CLOSED TESTING: real ad units are OFF. Every build, production included, requests Google's
  * test units (TestIds).
  *
- * Sudoku Calm has no AdMob app yet. Before turning real units on:
- *   0. In AdMob (publisher pub-4342572133101591) create the Sudoku Calm Android app and three units:
- *      a banner (menu_banner, home and level select), an interstitial (finish_interstitial, after a
- *      finished puzzle) and a rewarded unit (game_rewarded: hint, second chance, missed daily,
- *      1 hour ad-free). Put the real app ID in android-app-id.js, app.json (both places) and the
- *      eas.json production env ADMOB_ANDROID_APP_ID, replacing Google's sample app ID.
+ * The Sudoku Calm AdMob app (ca-app-pub-4342572133101591~8389629390) and its three units exist,
+ * and the real app ID is already set in android-app-id.js, app.json and eas.json.
  *
  * To turn on real ads at the public release:
- *   1. Below, delete the line `const PRODUCTION_UNIT_IDS = null;` and uncomment the block under it,
- *      filling in the real unit IDs. LIVE_AD_UNITS_ENABLED then becomes true.
+ *   1. Below, delete the line `const PRODUCTION_UNIT_IDS = null;` and uncomment the block under it
+ *      (the real unit IDs are already filled in). LIVE_AD_UNITS_ENABLED then becomes true.
  *   2. Keep ADS_MODE=live in the eas.json production profile (it already is).
  *      Development and preview stay on ADS_MODE=test and keep using test units.
  *   3. Build with the production profile. EAS raises versionCode automatically
@@ -23,9 +19,9 @@
  */
 const PRODUCTION_UNIT_IDS = null;
 // const PRODUCTION_UNIT_IDS = {
-//   menu_banner: 'ca-app-pub-4342572133101591/XXXXXXXXXX',
-//   finish_interstitial: 'ca-app-pub-4342572133101591/XXXXXXXXXX',
-//   game_rewarded: 'ca-app-pub-4342572133101591/XXXXXXXXXX',
+//   menu_banner: 'ca-app-pub-4342572133101591/9215625901',
+//   finish_interstitial: 'ca-app-pub-4342572133101591/7275683268',
+//   game_rewarded: 'ca-app-pub-4342572133101591/6693404345',
 // };
 
 /** True only once the real unit IDs above are uncommented. While false, live builds use test units. */

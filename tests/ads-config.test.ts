@@ -28,7 +28,11 @@ test('enabling live units without real IDs stops the build', () => {
 
 test('the Google sample app ID is allowed only while test units are in use', () => {
   const sample = 'ca-app-pub-3940256099942544~3347511713';
-  assert.equal(appId.ADMOB_ANDROID_APP_ID, sample);
+  assert.equal(appId.ADMOB_ANDROID_APP_ID, 'ca-app-pub-4342572133101591~8389629390');
+  assert.equal(
+    appId.resolveAndroidAppId({ profile: 'production', adsMode: 'live', fromConfig: appId.ADMOB_ANDROID_APP_ID, liveUnitsEnabled: true }),
+    appId.ADMOB_ANDROID_APP_ID,
+  );
   assert.equal(
     appId.resolveAndroidAppId({ profile: 'production', adsMode: 'live', fromConfig: sample, liveUnitsEnabled: false }),
     sample,
