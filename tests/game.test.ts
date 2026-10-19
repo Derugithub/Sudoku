@@ -4,12 +4,17 @@ import {
   applyHint,
   canSecondChance,
   canWatchForHint,
+  emptyAtStart,
   erase,
   freeHintsLeft,
+  hasProgress,
+  MISTAKE_LIMIT,
   newGame,
   parseGame,
   place,
+  progressPercent,
   remainingCounts,
+  restart,
   secondChance,
   serializeGame,
   tick,
@@ -21,7 +26,7 @@ import { bit } from '../src/sudoku/grid.ts';
 import { findHint } from '../src/sudoku/hints.ts';
 import { CLASSIC, CLASSIC_SOLUTION } from './helpers.ts';
 
-const OPTS: PlayOptions = { mistakeCheck: true, mistakeLimit: true, autoRemoveNotes: true };
+const OPTS: PlayOptions = { autoRemoveNotes: true };
 const fresh = () => newGame({ id: 'g', level: 'medium', givens: CLASSIC, solution: CLASSIC_SOLUTION, now: 1000 });
 
 test('placing a digit removes it from notes in the same row, column and box', () => {
@@ -90,11 +95,18 @@ test('three mistakes lose the game; one second chance continues with one to spar
   assert.equal(canSecondChance(g), false);
 });
 
-test('mistake check off: wrong digits are not counted', () => {
+test('show-mistakes off: a wrong entry still counts and the limit still applies', () => {
+  // "Show mistakes" is display-only; the game rules never see it.
+  assert.deepEqual(Object.keys(OPTS), ['autoRemoveNotes']);
   let g = fresh();
-  for (const d of [1, 2, 3]) g = place(g, 2, d, { ...OPTS, mistakeCheck: false }).state;
-  assert.equal(g.mistakes, 0);
-  assert.equal(g.status, 'playing');
+  const r = place(g, 2, 1, OPTS); // wrong (r1c3 is 4)
+  assert.equal(r.events.mistake, true);
+  assert.equal(r.state.mistakes, 1);
+  g = r.state;
+  for (const d of [2, 3]) g = place(g, 2, d, OPTS).state;
+  assert.equal(g.mistakes, 3);
+  assert.equal(g.status, 'lost');
+  assert.equal(canSecondChance(g), true);
 });
 
 test('remaining counts drop with correct digits only', () => {
@@ -153,4 +165,93 @@ test('save and load round-trips a game, and rejects broken saves', () => {
   const tampered = JSON.parse(serializeGame(g));
   tampered.values[0] = 9; // a given changed
   assert.equal(parseGame(JSON.stringify(tampered)), null);
+});
+
+test('the three-mistake limit is always on when mistakes are checked', () => {
+  assert.equal(MISTAKE_LIMIT, 3);
+  let g = fresh();
+  for (const d of [1, 2]) g = place(g, 2, d, OPTS).state;
+  assert.equal(g.status, 'playing');
+  g = place(g, 2, 3, OPTS).state;
+  assert.equal(g.status, 'lost');
+});
+
+/** Fills the first `n` empty cells correctly. */
+function fillCorrect(g: ReturnType<typeof fresh>, n: number) {
+  let filled = 0;
+  for (let i = 0; i < 81 && filled < n; i++) {
+    if (g.values[i]) continue;
+    g = place(g, i, Number(CLASSIC_SOLUTION[i]), OPTS).state;
+    filled++;
+  }
+  return g;
+}
+
+test('progress is correct cells over cells empty at the start, rounded down', () => {
+  let g = fresh();
+  assert.equal(emptyAtStart(g), 51);
+  assert.equal(progressPercent(g), 0);
+  g = fillCorrect(g, 13); // 13/51 = 25.49%
+  assert.equal(progressPercent(g), 25);
+  const wrongCell = g.values.indexOf(0);
+  const wrongDigit = (Number(CLASSIC_SOLUTION[wrongCell]) % 9) + 1;
+  g = place(g, wrongCell, wrongDigit, OPTS).state; // a wrong digit does not count
+  assert.equal(progressPercent(g), 25);
+  g = fillCorrect(fresh(), 50);
+  assert.equal(progressPercent(g), 98); // 50/51: never shows 100% until the last cell
+  g = fillCorrect(g, 1);
+  assert.equal(g.status, 'won');
+  assert.equal(progressPercent(g), 100);
+});
+
+test('progress exists once there are entries, notes or mistakes', () => {
+  const g = fresh();
+  assert.equal(hasProgress(g), false);
+  assert.equal(hasProgress(tick(g, 3000)), false); // time alone is not progress
+  assert.equal(hasProgress(toggleNote(g, 2, 4).state), true);
+  assert.equal(hasProgress(place(g, 2, 4, OPTS).state), true);
+  const mistakeErased = erase(place(g, 2, 1, OPTS).state, 2).state;
+  assert.equal(hasProgress(mistakeErased), true);
+});
+
+test('restart resets the same puzzle but keeps spent hints and the second chance', () => {
+  let g = fresh();
+  g = toggleNote(g, 3, 6).state;
+  g = fillCorrect(g, 5);
+  const h = findHint(g.values, [...CLASSIC_SOLUTION].map(Number))!;
+  g = applyHint(g, h, 'free', OPTS).state;
+  const cell = g.values.indexOf(0);
+  const wrong = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((d) => d !== Number(CLASSIC_SOLUTION[cell])).slice(0, 3);
+  for (const d of wrong) g = place(g, cell, d, OPTS).state;
+  assert.equal(g.status, 'lost');
+  g = secondChance(g);
+  g = tick(g, 4000);
+  const before = g;
+
+  const r = restart(g);
+  assert.equal(r.id, before.id);
+  assert.equal(r.givens, before.givens);
+  assert.equal(r.values.join(''), CLASSIC.replace(/\./g, '0'));
+  assert.ok(r.notes.every((n) => n === 0));
+  assert.equal(r.history.length, 0);
+  assert.equal(r.mistakes, 0);
+  assert.equal(r.elapsedMs, 0);
+  assert.equal(r.status, 'playing');
+  assert.equal(progressPercent(r), 0);
+  assert.equal(hasProgress(r), false);
+  // Allowances stay spent: no free-hint farming, no second second chance.
+  assert.equal(r.freeHintsUsed, before.freeHintsUsed);
+  assert.equal(freeHintsLeft(r), freeHintsLeft(before));
+  assert.equal(r.rewardedHintsUsed, before.rewardedHintsUsed);
+  assert.equal(r.secondChanceUsed, true);
+  assert.equal(r.rewardedAds, before.rewardedAds);
+  // Losing again after a restart offers no further chance.
+  let again = r;
+  for (const d of [1, 2, 3]) again = place(again, 2, d, OPTS).state;
+  assert.equal(again.status, 'lost');
+  assert.equal(canSecondChance(again), false);
+  // And it survives save/load.
+  const loaded = parseGame(serializeGame(r))!;
+  assert.equal(loaded.secondChanceUsed, true);
+  assert.equal(loaded.freeHintsUsed, before.freeHintsUsed);
 });

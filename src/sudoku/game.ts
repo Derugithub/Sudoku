@@ -1,11 +1,13 @@
 /**
  * The game as a pure state machine: place, notes, erase, undo, hints, mistakes, second chance,
- * timer. The screen keeps a GameState and feeds it actions; nothing here touches React or storage.
+ * restart, progress, timer. The screen keeps a GameState and feeds it actions; nothing here
+ * touches React or storage.
  */
 import { bit, CELL_UNITS, PEERS, UNITS } from './grid';
 import { isLevel, type Level } from './grader';
 import { freeHintsFor, REWARDED_HINTS_PER_GAME, type Hint } from './hints';
 
+/** Three mistakes end the game (always on whenever mistakes are checked). */
 export const MISTAKE_LIMIT = 3;
 /** Undo snapshots kept in the autosave. In memory, undo is unlimited. */
 export const SAVED_HISTORY = 200;
@@ -38,10 +40,6 @@ export type GameState = {
 };
 
 export type PlayOptions = {
-  /** Count and show wrong digits. */
-  mistakeCheck: boolean;
-  /** End the game at three mistakes (only with mistakeCheck). */
-  mistakeLimit: boolean;
   /** Placing a digit removes it from the notes in the same row, column and box. */
   autoRemoveNotes: boolean;
 };
@@ -150,10 +148,11 @@ export function place(state: GameState, cell: number, digit: number, options: Pl
   let next = writeDigit({ ...state, history: pushHistory(state) }, cell, digit, options.autoRemoveNotes);
   const wrong = digit !== solutionAt(state, cell);
   const events: GameEvents = { placed: { cell, digit }, completedUnits: [] };
-  if (wrong && options.mistakeCheck) {
+  // Every wrong digit counts, whatever the display settings: the limit cannot be switched off.
+  if (wrong) {
     next = { ...next, mistakes: next.mistakes + 1 };
     events.mistake = true;
-    if (options.mistakeLimit && next.mistakes >= MISTAKE_LIMIT) {
+    if (next.mistakes >= MISTAKE_LIMIT) {
       next = { ...next, status: 'lost' };
       events.lost = true;
     }
@@ -252,6 +251,51 @@ export function secondChance(state: GameState): GameState {
 export function tick(state: GameState, ms: number): GameState {
   if (state.status !== 'playing' || ms <= 0) return state;
   return { ...state, elapsedMs: state.elapsedMs + Math.min(ms, 5_000) };
+}
+
+/** Cells that were empty when the puzzle started. */
+export function emptyAtStart(state: GameState): number {
+  let n = 0;
+  for (let i = 0; i < 81; i++) if (!isGiven(state, i)) n++;
+  return n;
+}
+
+/** Correctly filled cells as a share of the cells that started empty, 0-100, rounded down. */
+export function progressPercent(state: GameState): number {
+  const total = emptyAtStart(state);
+  if (total === 0) return 100;
+  let correct = 0;
+  for (let i = 0; i < 81; i++) if (!isGiven(state, i) && state.values[i] === solutionAt(state, i)) correct++;
+  return Math.floor((correct * 100) / total);
+}
+
+/** Anything a restart or a new puzzle would throw away: entries, notes or mistakes. */
+export function hasProgress(state: GameState): boolean {
+  if (state.mistakes > 0) return true;
+  for (let i = 0; i < 81; i++) {
+    if (isGiven(state, i)) continue;
+    if (state.values[i] || state.notes[i]) return true;
+  }
+  return false;
+}
+
+/**
+ * The same puzzle from its starting givens: entries, notes, undo history, mistakes and the timer
+ * are cleared. Hint allowances already spent, the second chance and the count of rewarded ads stay
+ * with the puzzle, so restarting cannot refill free hints or another chance. A restart is not a
+ * finished puzzle (no stats, no interstitial).
+ */
+export function restart(state: GameState): GameState {
+  const values = [...state.givens].map((ch) => (ch >= '1' && ch <= '9' ? Number(ch) : 0));
+  return {
+    ...state,
+    values,
+    notes: new Array(81).fill(0),
+    history: [],
+    mistakes: 0,
+    elapsedMs: 0,
+    status: 'playing',
+  };
 }
 
 export function noteRewardedAd(state: GameState): GameState {

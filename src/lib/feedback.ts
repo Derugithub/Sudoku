@@ -77,3 +77,9 @@ export function feedback(event: FeedbackEvent, options: { sound: boolean; vibrat
     // Never let a sound break play.
   }
 }
+
+/** A light tap for toggles (e.g. the Music icon). Follows the Vibration setting. */
+export function lightTap(vibration: boolean): void {
+  if (Platform.OS === 'web' || !vibration) return;
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+}

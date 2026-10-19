@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AdsProvider } from '@/lib/ads/ads-provider';
 import { AppDataProvider } from '@/lib/app-data';
 import { preloadFeedback } from '@/lib/feedback';
+import { setMusicEnabled } from '@/lib/music';
 import { SettingsProvider, useSettings } from '@/lib/settings';
 import { useTheme } from '@/theme/theme-context';
 
@@ -29,6 +30,7 @@ export default function RootLayout() {
           <AdsProvider>
             <AppDataProvider>
               <Themed>
+                <MusicSync />
                 <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
                   <Stack.Screen name="index" />
                   <Stack.Screen name="levels" options={{ animation: 'slide_from_right' }} />
@@ -44,6 +46,15 @@ export default function RootLayout() {
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+/** Follows the Music setting once settings are loaded, so a saved "off" never plays a note. */
+function MusicSync() {
+  const { settings, loaded } = useSettings();
+  useEffect(() => {
+    if (loaded) setMusicEnabled(settings.music);
+  }, [loaded, settings.music]);
+  return null;
 }
 
 /** Applies the resolved theme to navigation, the status bar and the window, and hides the splash. */

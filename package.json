@@ -47,7 +47,7 @@
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
     "sounds": "node scripts/generate-sounds.mjs",
-    "icons": "node scripts/generate-icons.mjs",
+    "music": "node scripts/generate-music.mjs",
     "fallback": "tsx scripts/build-fallback.ts",
     "bench": "tsx scripts/bench-generator.ts"
   },

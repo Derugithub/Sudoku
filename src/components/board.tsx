@@ -27,7 +27,6 @@ export type BoardProps = {
   hintCells: Set<number>;
   hintTarget: number | null;
   ripple: { id: number; delays: Map<number, number> };
-  hidden: boolean;
   palette: Palette;
   t: Translate;
   onCellPress: (cell: number) => void;
@@ -65,65 +64,59 @@ export function Board(props: BoardProps) {
   return (
     <View
       style={[styles.board, { width: size, height: size, borderColor: p.lineBox, backgroundColor: p.lineThin, borderRadius: BOARD.radius }]}>
-      {props.hidden ? (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: p.board }]} />
-      ) : (
-        <>
-          {cells.map((cell, i) => {
-            const r = Math.floor(i / 9);
-            const col = i % 9;
-            const b = Math.floor(r / 3) * 3 + Math.floor(col / 3);
-            const isSel = i === selected;
-            const inUnit = props.highlightUnits && selected != null && (r === selRow || col === selCol || b === selBox);
-            const same = props.highlightDigit > 0 && cell.value === props.highlightDigit;
-            const showWrong = props.showErrors && cell.wrong;
-            const bg = isSel
-              ? p.selected
-              : showWrong
-                ? p.errorBg
-                : i === props.hintTarget
-                  ? p.hintCell
-                  : same
-                    ? p.sameNumber
-                    : props.hintCells.has(i)
-                      ? p.hintPattern
-                      : inUnit
-                        ? p.unitTint
-                        : p.board;
-            const color = showWrong ? p.errorText : cell.given ? p.given : p.player;
-            const noteHit = props.highlightDigit > 0 && (cell.notes & bit(props.highlightDigit)) !== 0 ? props.highlightDigit : 0;
-            return (
-              <Cell
-                key={i}
-                index={i}
-                left={offset(col, c)}
-                top={offset(r, c)}
-                size={c}
-                value={cell.value}
-                given={cell.given}
-                notes={cell.notes}
-                noteHit={noteHit}
-                bg={bg}
-                color={color}
-                noteColor={p.notes}
-                noteHitColor={p.player}
-                rippleColor={p.ripple}
-                rippleId={props.ripple.id}
-                rippleDelay={props.ripple.delays.get(i) ?? -1}
-                label={cellAccessibility(props.t, i, cell)}
-                selected={isSel}
-                onPress={props.onCellPress}
-              />
-            );
-          })}
-          {[3, 6].map((k) => (
-            <View key={`v${k}`} pointerEvents="none" style={[styles.boxLine, { left: offset(k, c) - BOARD.lineBox, top: 0, width: BOARD.lineBox, height: inner, backgroundColor: p.lineBox }]} />
-          ))}
-          {[3, 6].map((k) => (
-            <View key={`h${k}`} pointerEvents="none" style={[styles.boxLine, { top: offset(k, c) - BOARD.lineBox, left: 0, height: BOARD.lineBox, width: inner, backgroundColor: p.lineBox }]} />
-          ))}
-        </>
-      )}
+      {cells.map((cell, i) => {
+        const r = Math.floor(i / 9);
+        const col = i % 9;
+        const b = Math.floor(r / 3) * 3 + Math.floor(col / 3);
+        const isSel = i === selected;
+        const inUnit = props.highlightUnits && selected != null && (r === selRow || col === selCol || b === selBox);
+        const same = props.highlightDigit > 0 && cell.value === props.highlightDigit;
+        const showWrong = props.showErrors && cell.wrong;
+        const bg = isSel
+          ? p.selected
+          : showWrong
+            ? p.errorBg
+            : i === props.hintTarget
+              ? p.hintCell
+              : same
+                ? p.sameNumber
+                : props.hintCells.has(i)
+                  ? p.hintPattern
+                  : inUnit
+                    ? p.unitTint
+                    : p.board;
+        const color = showWrong ? p.errorText : cell.given ? p.given : p.player;
+        const noteHit = props.highlightDigit > 0 && (cell.notes & bit(props.highlightDigit)) !== 0 ? props.highlightDigit : 0;
+        return (
+          <Cell
+            key={i}
+            index={i}
+            left={offset(col, c)}
+            top={offset(r, c)}
+            size={c}
+            value={cell.value}
+            given={cell.given}
+            notes={cell.notes}
+            noteHit={noteHit}
+            bg={bg}
+            color={color}
+            noteColor={p.notes}
+            noteHitColor={p.player}
+            rippleColor={p.ripple}
+            rippleId={props.ripple.id}
+            rippleDelay={props.ripple.delays.get(i) ?? -1}
+            label={cellAccessibility(props.t, i, cell)}
+            selected={isSel}
+            onPress={props.onCellPress}
+          />
+        );
+      })}
+      {[3, 6].map((k) => (
+        <View key={`v${k}`} pointerEvents="none" style={[styles.boxLine, { left: offset(k, c) - BOARD.lineBox, top: 0, width: BOARD.lineBox, height: inner, backgroundColor: p.lineBox }]} />
+      ))}
+      {[3, 6].map((k) => (
+        <View key={`h${k}`} pointerEvents="none" style={[styles.boxLine, { top: offset(k, c) - BOARD.lineBox, left: 0, height: BOARD.lineBox, width: inner, backgroundColor: p.lineBox }]} />
+      ))}
     </View>
   );
 }
