@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, router } from 'expo-router';
+import { Redirect, router, useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,12 +9,17 @@ import { Confetti } from '@/components/confetti';
 import { GameTools } from '@/components/game-tools';
 import { HintCard } from '@/components/hint-card';
 import { NumberPad } from '@/components/number-pad';
-import { AppText, Button, IconButton } from '@/components/ui';
+import { Popup, PopupButton } from '@/components/popup';
+import { PROGRESS_ROW_HEIGHT, ProgressBar } from '@/components/progress-bar';
+import { Toast } from '@/components/toast';
+import { TopIcon } from '@/components/top-bar';
+import { AppText, Button } from '@/components/ui';
 import { explainHint, levelName, type HintText } from '@/i18n/explain';
 import { useAds } from '@/lib/ads/ads-context';
 import { useAppData } from '@/lib/app-data';
-import { feedback } from '@/lib/feedback';
+import { feedback, lightTap } from '@/lib/feedback';
 import { formatTime, shortDate } from '@/lib/format';
+import { mayConsiderInterstitial, needsConfirmation, outOfMistakesActions, pauseActions, type FlowAction } from '@/lib/game-flow';
 import { setGenerationPaused } from '@/lib/puzzle-source';
 import { noteWinAndMaybeAskReview } from '@/lib/review/store-review';
 import { useSettings } from '@/lib/settings';
@@ -29,7 +34,9 @@ import {
   isWrong,
   MISTAKE_LIMIT,
   place,
+  progressPercent,
   remainingCounts,
+  restart,
   secondChance,
   solutionDigits,
   tick,
@@ -42,12 +49,15 @@ import {
 import { colOf, rowOf, UNITS } from '@/sudoku/grid';
 import { findHint, hintButtonState, hintCells } from '@/sudoku/hints';
 import { usePalette } from '@/theme/theme-context';
-import { BOARD, difficultyColor, MOTION, RADIUS, SPACE } from '@/theme/tokens';
+import { BOARD, difficultyColor, MOTION, RADIUS, SPACE, TOP_BAR } from '@/theme/tokens';
 
 type End = { kind: 'won'; newBest: boolean } | { kind: 'lost' };
+type Confirm = 'restart' | 'pauseNew';
 type HintView = { cells: Set<number>; target: number; text: HintText };
 
-const TOP_BAR = 56;
+/** Stats row under the top bar: mistakes, timer and pause. */
+const STATS_ROW = 40;
+const TOAST_MS = 1400;
 const NO_CELLS = new Set<number>();
 
 function rippleDelays(units: number[], origin: number): Map<number, number> {
@@ -73,8 +83,9 @@ export default function GameScreen() {
 function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((prev: GameState | null) => GameState | null)) => void }) {
   const data = useAppData();
   const ads = useAds();
-  const { settings, t } = useSettings();
+  const { settings, update, t } = useSettings();
   const p = usePalette();
+  const focused = useIsFocused();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
 
@@ -88,15 +99,18 @@ function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((p
   const [ripple, setRipple] = useState<{ id: number; delays: Map<number, number> }>({ id: 0, delays: new Map() });
   const [end, setEnd] = useState<End | null>(null);
   const [leaving, setLeaving] = useState(false);
+  const [confirm, setConfirm] = useState<Confirm | null>(null);
   const messageTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const options: PlayOptions = {
     mistakeCheck: settings.mistakeCheck,
-    mistakeLimit: settings.mistakeCheck && settings.mistakeLimit,
     autoRemoveNotes: settings.autoRemoveNotes,
   };
   const fb = { sound: settings.sound, vibration: settings.vibration };
-  const playing = game.status === 'playing' && !paused && !adOpen && !end;
+  // Opening Settings mid-game (screen not focused) stops the clock like Pause, without the popup.
+  const playing = game.status === 'playing' && !paused && !adOpen && !end && !confirm && focused;
 
   // Timer: counts only while the board is visible and in play.
   useEffect(() => {
@@ -134,9 +148,27 @@ function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((p
   useEffect(
     () => () => {
       if (messageTimer.current) clearTimeout(messageTimer.current);
+      if (toastTimer.current) clearTimeout(toastTimer.current);
     },
     [],
   );
+
+  const showToast = (text: string) => {
+    setToast((prev) => ({ id: (prev?.id ?? 0) + 1, text }));
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), TOAST_MS);
+  };
+
+  /** Same persisted setting as the Settings toggle. Only the piano; ad audio is the ad's own. */
+  const toggleMusic = () => {
+    const on = !settings.music;
+    update({ music: on });
+    lightTap(settings.vibration);
+    showToast(on ? t('game.musicOn') : t('game.musicOff'));
+  };
+
+  /** Settings on top of the game: the game stays mounted, so it comes back exactly as it was. */
+  const openSettings = () => router.push('/settings');
 
   const flash = (text: string) => {
     setMessage(text);
@@ -231,6 +263,43 @@ function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((p
     setEnd(null);
   };
 
+  /** Back to a clean view of the current (or a new) puzzle. */
+  const resetView = () => {
+    setEnd(null);
+    setHint(null);
+    setMessage(null);
+    setSelected(null);
+    setActiveDigit(0);
+    setNotesMode(false);
+    setPaused(false);
+    setConfirm(null);
+  };
+
+  /** Same puzzle from its givens. Not a finished puzzle: no stats, no interstitial. */
+  const doRestart = () => {
+    setGame((g) => (g ? restart(g) : g));
+    resetView();
+  };
+
+  /** New puzzle at the same level from the pause popup. Abandons this one; never an ad. */
+  const doPauseNew = async () => {
+    if (leaving) return;
+    setLeaving(true);
+    try {
+      const next = await data.startLevel(game.level);
+      setGame(next);
+      resetView();
+    } finally {
+      setLeaving(false);
+    }
+  };
+
+  const ask = (action: Confirm) => {
+    if (needsConfirmation(action, game)) return setConfirm(action);
+    if (action === 'restart') doRestart();
+    else void doPauseNew();
+  };
+
   /** Leaving the end screen: the only place an interstitial may show, then maybe the review card. */
   const leave = async (target: 'home' | 'next' | 'daily') => {
     if (leaving) return;
@@ -238,7 +307,10 @@ function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((p
     const won = game.status === 'won';
     if (!won) data.finishGame(game);
     const rewardedThisGame = game.rewardedAds > 0;
-    const shown = await ads.puzzleFinished({ rewardedThisGame });
+    const action: FlowAction = target === 'next' ? 'finishedNext' : 'finishedLeave';
+    const shown = mayConsiderInterstitial(action, { paused: paused && !end, status: game.status })
+      ? await ads.puzzleFinished({ rewardedThisGame })
+      : false;
     if (won) {
       const now = Date.now();
       void noteWinAndMaybeAskReview({
@@ -256,12 +328,7 @@ function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((p
     if (target === 'next') {
       const next = await data.startLevel(game.level);
       setGame(next);
-      setEnd(null);
-      setHint(null);
-      setSelected(null);
-      setActiveDigit(0);
-      setNotesMode(false);
-      setPaused(false);
+      resetView();
       setLeaving(false);
       return;
     }
@@ -274,19 +341,22 @@ function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((p
   const availW = width - insets.left - insets.right;
   const availH = height - insets.top - insets.bottom;
   const landscape = availW > availH * 1.15;
+  const HEADER = TOP_BAR.height + STATS_ROW + PROGRESS_ROW_HEIGHT;
+  // Back + three icons with 4px gaps: 48dp targets when the title keeps at least 120dp, else 44.
+  const iconTarget = availW - 8 - 4 * TOP_BAR.target - 4 * TOP_BAR.gap >= 120 ? TOP_BAR.target : TOP_BAR.minTarget;
   const fitsMargin = availW - 2 * BOARD.margin >= 9 * BOARD.minCell + 14;
   const margin = fitsMargin ? BOARD.margin : Math.max(BOARD.minMargin, (availW - 9 * BOARD.minCell - 14) / 2);
   let boardSize: number;
   let keySize: { width: number; height: number };
   if (!landscape) {
-    const bottom = Math.max(availH * 0.4, 230);
-    boardSize = snapBoardSize(Math.min(availW - 2 * margin, availH - TOP_BAR - bottom - SPACE.sm, 720));
+    const bottom = Math.max(availH * 0.34, 230);
+    boardSize = snapBoardSize(Math.min(availW - 2 * margin, availH - HEADER - bottom - SPACE.sm, 720));
     const padW = Math.min(availW - 2 * margin, 720);
     keySize = { width: Math.floor((padW - 8 * 4) / 9), height: Math.round(Math.min(76, Math.max(52, bottom * 0.3))) };
   } else {
-    boardSize = snapBoardSize(Math.min(availH - TOP_BAR - SPACE.lg, availW * 0.56));
+    boardSize = snapBoardSize(Math.min(availH - HEADER - SPACE.lg, availW * 0.56));
     const side = availW - boardSize - SPACE.xl * 3;
-    const k = Math.floor(Math.min((side - 16) / 3, (availH - TOP_BAR - 110) / 3, 92));
+    const k = Math.floor(Math.min((side - 16) / 3, (availH - HEADER - 110) / 3, 92));
     keySize = { width: k, height: Math.round(k * 0.8) };
   }
 
@@ -300,7 +370,7 @@ function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((p
     wrong: isWrong(game, i),
   }));
   const color = difficultyColor(game.level, p);
-  const hidden = paused && !end;
+  const progress = progressPercent(game);
   const title = game.daily ? t('game.daily', { date: shortDate(game.daily) }) : levelName(t, game.level);
 
   const board = (
@@ -315,17 +385,10 @@ function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((p
         hintCells={hint?.cells ?? NO_CELLS}
         hintTarget={hint?.target ?? null}
         ripple={ripple}
-        hidden={hidden}
         palette={p}
         t={t}
         onCellPress={onCellPress}
       />
-      {hidden ? (
-        <View style={[StyleSheet.absoluteFill, styles.pausedOverlay]}>
-          <AppText variant="title">{t('game.paused')}</AppText>
-          <Button label={t('game.resume')} icon="play" onPress={() => setPaused(false)} />
-        </View>
-      ) : null}
     </View>
   );
 
@@ -362,25 +425,47 @@ function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((p
 
   return (
     <View style={[styles.root, { backgroundColor: p.bg, paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }]}>
-      <View style={[styles.topBar, { paddingHorizontal: margin - 8 }]}>
-        <IconButton icon="chevron-back" label={t('game.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+      <View style={styles.topBar}>
+        <TopIcon
+          icon="chevron-back"
+          label={t('game.back')}
+          color={p.topIcon}
+          target={iconTarget}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        />
         <View style={styles.levelTag}>
           <View style={[styles.dot, { backgroundColor: color }]} />
-          <AppText variant="bodyMedium" numberOfLines={1}>
+          <AppText variant="bodyMedium" numberOfLines={1} style={styles.title}>
             {title}
           </AppText>
         </View>
+        <TopIcon icon="refresh-outline" label={t('game.restart')} color={p.topIcon} target={iconTarget} onPress={() => ask('restart')} disabled={!!end || leaving} />
+        <TopIcon icon="musical-note-outline" label={t('game.music')} color={p.topIcon} target={iconTarget} toggle off={!settings.music} onPress={toggleMusic} />
+        <TopIcon icon="settings-outline" label={t('game.settings')} color={p.topIcon} target={iconTarget} onPress={openSettings} disabled={leaving} />
+      </View>
+      <View style={[styles.statBar, { paddingLeft: margin, paddingRight: Math.max(0, margin - 10) }]}>
         {settings.mistakeCheck ? (
-          <AppText variant="label" color={game.mistakes > 0 ? p.errorText : p.textMuted} style={styles.topText}>
-            {options.mistakeLimit ? t('game.mistakes', { n: game.mistakes, max: MISTAKE_LIMIT }) : t('game.mistakesCount', { n: game.mistakes })}
+          <AppText variant="label" color={game.mistakes > 0 ? p.errorText : p.textMuted}>
+            {t('game.mistakes', { n: game.mistakes, max: MISTAKE_LIMIT })}
           </AppText>
         ) : null}
+        <View style={styles.flex} />
         {settings.showTimer ? (
-          <AppText variant="bodyMedium" style={[styles.topText, styles.timer]} accessibilityLabel={formatTime(game.elapsedMs)}>
+          <AppText variant="bodyMedium" style={styles.timer} accessibilityLabel={formatTime(game.elapsedMs)}>
             {formatTime(game.elapsedMs)}
           </AppText>
         ) : null}
-        <IconButton icon={paused ? 'play' : 'pause'} label={paused ? t('game.resume') : t('game.pause')} onPress={() => setPaused((x) => !x)} disabled={!!end} />
+        <TopIcon
+          icon={paused ? 'play-outline' : 'pause-outline'}
+          label={paused ? t('game.resume') : t('game.pause')}
+          color={p.topIcon}
+          target={TOP_BAR.minTarget}
+          onPress={() => setPaused((x) => !x)}
+          disabled={!!end}
+        />
+      </View>
+      <View style={{ paddingHorizontal: margin }}>
+        <ProgressBar percent={progress} palette={p} t={t} />
       </View>
 
       {landscape ? (
@@ -403,101 +488,110 @@ function Game({ game, setGame }: { game: GameState; setGame: (g: GameState | ((p
         </View>
       )}
 
-      {end ? (
-        <EndSheet
-          end={end}
-          game={game}
-          busy={leaving}
-          canSecond={canSecondChance(game)}
-          secondReady={ads.offers.second_chance}
-          onSecondChance={onSecondChance}
-          onLeave={leave}
-          width={width}
-          height={height}
-        />
+      {end?.kind === 'won' ? <WinSheet newBest={end.newBest} game={game} busy={leaving} onLeave={leave} width={width} height={height} /> : null}
+
+      {end?.kind === 'lost' && !confirm ? (
+        <Popup
+          title={t('lose.title')}
+          body={canSecondChance(game) ? t('lose.body') : t('lose.bodyUsed')}
+          icon="heart-dislike-outline"
+          iconColor={p.errorText}>
+          {outOfMistakesActions(game).map((action) =>
+            action === 'secondChance' ? (
+              <PopupButton
+                key={action}
+                kind="filled"
+                label={t('lose.secondChance')}
+                ad
+                disabled={!ads.offers.second_chance || leaving}
+                detail={ads.offers.second_chance ? t('lose.secondChanceDetail') : t('lose.noAd')}
+                onPress={onSecondChance}
+              />
+            ) : action === 'restart' ? (
+              <PopupButton key={action} label={t('game.restart')} disabled={leaving} onPress={() => ask('restart')} />
+            ) : action === 'new' ? (
+              <PopupButton key={action} label={t('lose.newGame')} busy={leaving} onPress={() => leave('next')} />
+            ) : (
+              <PopupButton key={action} kind="text" label={t('common.close')} disabled={leaving} onPress={() => leave(game.daily ? 'daily' : 'home')} />
+            ),
+          )}
+        </Popup>
       ) : null}
+
+      {paused && !end && !confirm ? (
+        <Popup title={t('game.paused')} subtitle={`${formatTime(game.elapsedMs)} · ${title}`}>
+          {pauseActions(game).map((action) =>
+            action === 'resume' ? (
+              <PopupButton key={action} kind="filled" label={t('game.resume')} disabled={leaving} onPress={() => setPaused(false)} />
+            ) : action === 'restart' ? (
+              <PopupButton key={action} label={t('game.restart')} disabled={leaving} onPress={() => ask('restart')} />
+            ) : (
+              <PopupButton key={action} label={t('game.newGame')} busy={leaving} onPress={() => ask('pauseNew')} />
+            ),
+          )}
+        </Popup>
+      ) : null}
+
+      {confirm ? (
+        <Popup
+          title={confirm === 'restart' ? t('confirm.restartTitle') : t('confirm.newTitle')}
+          body={confirm === 'restart' ? t('confirm.restartBody') : t('confirm.newBody')}>
+          <PopupButton
+            kind="filled"
+            label={confirm === 'restart' ? t('confirm.restart') : t('confirm.new')}
+            busy={leaving}
+            onPress={() => (confirm === 'restart' ? doRestart() : void doPauseNew())}
+          />
+          <PopupButton label={t('common.cancel')} disabled={leaving} onPress={() => setConfirm(null)} />
+        </Popup>
+      ) : null}
+
+      {toast ? <Toast key={toast.id} text={toast.text} palette={p} top={insets.top + TOP_BAR.height + 6} /> : null}
     </View>
   );
 }
 
-function EndSheet({
-  end,
+function WinSheet({
+  newBest,
   game,
   busy,
-  canSecond,
-  secondReady,
-  onSecondChance,
   onLeave,
   width,
   height,
 }: {
-  end: End;
+  newBest: boolean;
   game: GameState;
   busy: boolean;
-  canSecond: boolean;
-  secondReady: boolean;
-  onSecondChance: () => void;
   onLeave: (target: 'home' | 'next' | 'daily') => void;
   width: number;
   height: number;
 }) {
   const { t } = useSettings();
   const p = usePalette();
-  const won = end.kind === 'won';
   return (
     <View style={[StyleSheet.absoluteFill, styles.sheetBackdrop, { backgroundColor: p.overlay }]} accessibilityViewIsModal>
-      {won ? <Confetti width={width} height={height} seed={game.startedAt % 997} /> : null}
+      <Confetti width={width} height={height} seed={game.startedAt % 997} />
       <View style={[styles.sheet, { backgroundColor: p.surface, borderColor: p.border }]}>
-        <Ionicons name={won ? 'sparkles' : 'heart-dislike-outline'} size={36} color={won ? difficultyColor(game.level, p) : p.errorText} />
+        <Ionicons name="sparkles" size={36} color={difficultyColor(game.level, p)} />
         <AppText variant="title" accessibilityRole="header">
-          {won ? (game.daily ? t('win.dailyTitle') : t('win.title')) : t('lose.title')}
+          {game.daily ? t('win.dailyTitle') : t('win.title')}
         </AppText>
-        {won ? (
-          <>
-            {end.newBest ? (
-              <AppText variant="bodyMedium" color={p.accent}>
-                {t('win.best')}
-              </AppText>
-            ) : null}
-            <View style={styles.statsRow}>
-              <Stat label={t('win.time')} value={formatTime(game.elapsedMs)} />
-              <Stat label={t('win.mistakes')} value={String(game.mistakes)} />
-              <Stat label={t('win.hints')} value={String(hintsUsed(game))} />
-            </View>
-            {game.daily ? (
-              <Button label={t('daily.title')} icon="calendar-outline" busy={busy} onPress={() => onLeave('daily')} style={styles.full} />
-            ) : (
-              <Button
-                label={t('win.next', { level: levelName(t, game.level) })}
-                icon="refresh"
-                busy={busy}
-                onPress={() => onLeave('next')}
-                style={styles.full}
-              />
-            )}
-            <Button label={t('win.home')} kind="secondary" disabled={busy} onPress={() => onLeave('home')} style={styles.full} />
-          </>
+        {newBest ? (
+          <AppText variant="bodyMedium" color={p.accent}>
+            {t('win.best')}
+          </AppText>
+        ) : null}
+        <View style={styles.statsRow}>
+          <Stat label={t('win.time')} value={formatTime(game.elapsedMs)} />
+          <Stat label={t('win.mistakes')} value={String(game.mistakes)} />
+          <Stat label={t('win.hints')} value={String(hintsUsed(game))} />
+        </View>
+        {game.daily ? (
+          <Button label={t('daily.title')} icon="calendar-outline" busy={busy} onPress={() => onLeave('daily')} style={styles.full} />
         ) : (
-          <>
-            <AppText variant="body" color={p.textMuted} style={styles.center}>
-              {canSecond ? t('lose.body') : ''}
-            </AppText>
-            {canSecond ? (
-              <Button
-                label={t('lose.secondChance')}
-                icon="play-circle-outline"
-                disabled={!secondReady || busy}
-                detail={secondReady ? undefined : t('lose.noAd')}
-                onPress={onSecondChance}
-                style={styles.full}
-              />
-            ) : null}
-            {game.daily ? null : (
-              <Button label={t('lose.newGame')} kind="secondary" busy={busy} onPress={() => onLeave('next')} style={styles.full} />
-            )}
-            <Button label={t('lose.home')} kind="secondary" disabled={busy} onPress={() => onLeave(game.daily ? 'daily' : 'home')} style={styles.full} />
-          </>
+          <Button label={t('win.next', { level: levelName(t, game.level) })} icon="refresh" busy={busy} onPress={() => onLeave('next')} style={styles.full} />
         )}
+        <Button label={t('win.home')} kind="secondary" disabled={busy} onPress={() => onLeave('home')} style={styles.full} />
       </View>
     </View>
   );
@@ -519,10 +613,12 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  topBar: { height: TOP_BAR, flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
-  levelTag: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, minWidth: 0 },
+  topBar: { height: TOP_BAR.height, flexDirection: 'row', alignItems: 'center', gap: TOP_BAR.gap, paddingHorizontal: 4 },
+  title: { flexShrink: 1 },
+  statBar: { height: STATS_ROW, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  flex: { flex: 1 },
+  levelTag: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, minWidth: 0, paddingLeft: 2 },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  topText: { marginHorizontal: SPACE.xs },
   timer: { fontVariant: ['tabular-nums'], minWidth: 44, textAlign: 'right' },
   portrait: { flex: 1 },
   boardArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -531,12 +627,10 @@ const styles = StyleSheet.create({
   landscape: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.xl, paddingHorizontal: SPACE.xl },
   side: { gap: SPACE.lg, justifyContent: 'center' },
   sideCard: { position: 'absolute', left: 0, right: 0, bottom: 0 },
-  pausedOverlay: { alignItems: 'center', justifyContent: 'center', gap: SPACE.lg },
   sheetBackdrop: { alignItems: 'center', justifyContent: 'center', padding: SPACE.xl },
   sheet: { width: '100%', maxWidth: 420, borderRadius: RADIUS.lg, borderWidth: 1, padding: SPACE.xl, alignItems: 'center', gap: SPACE.md },
   statsRow: { flexDirection: 'row', alignSelf: 'stretch', justifyContent: 'space-around', marginVertical: SPACE.sm },
   stat: { alignItems: 'center', gap: 2 },
   tabular: { fontVariant: ['tabular-nums'] },
   full: { alignSelf: 'stretch' },
-  center: { textAlign: 'center' },
 });

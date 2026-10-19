@@ -21,6 +21,7 @@ import { AdsContext, type AdsContextValue } from '@/lib/ads/ads-context';
 import { isTestAdsMode, logAdDecision } from '@/lib/ads/ads-mode';
 import { gatherConsent, privacyOptionsRequired, showPrivacyOptions } from '@/lib/ads/consent';
 import { loadGoogleMobileAds } from '@/lib/ads/native-ads';
+import { blockMusic, unblockMusic } from '@/lib/music';
 import { KEYS, readRaw, writeRaw, writeRawSync } from '@/lib/storage';
 
 type Ads = ReturnType<typeof loadGoogleMobileAds>;
@@ -36,7 +37,7 @@ type View = { state: AdState; offers: Record<RewardedKind, boolean>; bannerAllow
 /**
  * Gathers UMP consent first, initialises the SDK only when consent allows ad requests, keeps one
  * interstitial and one rewarded ad preloaded, and applies the caps in ad-policy.ts. Any failure
- * leaves ads off; the game never waits on an ad.
+ * leaves ads off; the game never waits on an ad. Background music pauses while any ad is on screen.
  */
 export function AdsProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -126,10 +127,12 @@ export function AdsProvider({ children }: { children: ReactNode }) {
         }),
         ad.addAdEventListener(ads.AdEventType.CLOSED, () => {
           holder.loaded = false;
+          unblockMusic('interstitial');
           ad.load();
         }),
         ad.addAdEventListener(ads.AdEventType.ERROR, (error) => {
           holder.loaded = false;
+          unblockMusic('interstitial');
           logAdDecision('interstitial failed', { error: String(error) });
           timers.current.push(setTimeout(() => ad.load(), RETRY_MS));
         }),
@@ -223,6 +226,7 @@ export function AdsProvider({ children }: { children: ReactNode }) {
         return false;
       }
       earned.current = false;
+      blockMusic('rewarded');
       const got = await new Promise<boolean>((resolve) => {
         rewardResolver.current = resolve;
         holder.ad.show().catch(() => {
@@ -230,6 +234,7 @@ export function AdsProvider({ children }: { children: ReactNode }) {
           resolve(false);
         });
       });
+      unblockMusic('rewarded');
       const closedAt = Date.now();
       const base = normalizeClock(stateRef.current, closedAt);
       commit(got ? recordRewarded(base, kind, closedAt) : { ...base, lastRewardedAt: closedAt });
@@ -257,10 +262,12 @@ export function AdsProvider({ children }: { children: ReactNode }) {
       }
       commit(recordInterstitial(s, now));
       holder.loaded = false;
+      blockMusic('interstitial'); // resumed by the CLOSED or ERROR listener
       try {
         await holder.ad.show();
         return true;
       } catch {
+        unblockMusic('interstitial');
         return false;
       }
     },

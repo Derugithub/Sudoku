@@ -45,6 +45,14 @@ export type Palette = {
   keyActiveText: string;
   badge: string;
   badgeText: string;
+  /** Game top-bar line icons (restart, music, settings). */
+  topIcon: string;
+  /** Puzzle progress bar: empty track and fill. */
+  progressTrack: string;
+  progressFill: string;
+  /** Filled button in game popups (Resume, Confirm) and its label; outlined buttons use it as ink. */
+  popupPrimary: string;
+  popupPrimaryText: string;
 };
 
 export const PALETTES: Record<ThemeName, Palette> = {
@@ -67,7 +75,7 @@ export const PALETTES: Record<ThemeName, Palette> = {
     selected: '#DCE8F5',
     unitTint: '#EEF2F7',
     sameNumber: '#C8DAEF',
-    notes: '#8A8F98',
+    notes: '#5F646D',
     errorText: '#D64545',
     errorBg: '#FBE3E3',
     hintCell: '#FFF1C9',
@@ -79,6 +87,11 @@ export const PALETTES: Record<ThemeName, Palette> = {
     keyActiveText: '#FFFFFF',
     badge: '#EFECE5',
     badgeText: '#4A4E5C',
+    topIcon: '#0E3264',
+    progressTrack: '#E4DED1',
+    progressFill: '#3A6EA5',
+    popupPrimary: '#0E3264',
+    popupPrimaryText: '#FFFFFF',
   },
   midnight: {
     dark: true,
@@ -99,7 +112,7 @@ export const PALETTES: Record<ThemeName, Palette> = {
     selected: '#26364A',
     unitTint: '#20262E',
     sameNumber: '#2C4560',
-    notes: '#9EA4AE',
+    notes: '#9AA0A8',
     errorText: '#FF6B6B',
     errorBg: '#3B2023',
     hintCell: '#3A3320',
@@ -111,6 +124,11 @@ export const PALETTES: Record<ThemeName, Palette> = {
     keyActiveText: '#0E1A27',
     badge: '#30353D',
     badgeText: '#C9CED6',
+    topIcon: '#E8E6E1',
+    progressTrack: '#2E333B',
+    progressFill: '#7FB3E8',
+    popupPrimary: '#7FB3E8',
+    popupPrimaryText: '#0E1A27',
   },
   contrast: {
     dark: false,
@@ -143,6 +161,11 @@ export const PALETTES: Record<ThemeName, Palette> = {
     keyActiveText: '#FFFFFF',
     badge: '#000000',
     badgeText: '#FFFFFF',
+    topIcon: '#000000',
+    progressTrack: '#BFBFBF',
+    progressFill: '#0033A0',
+    popupPrimary: '#0033A0',
+    popupPrimaryText: '#FFFFFF',
   },
 };
 
@@ -207,7 +230,34 @@ export const MOTION = {
   rippleStaggerMs: 22,
   confettiMs: 1600,
   confettiCount: 36,
+  progressMs: 200,
 } as const;
+
+/** Compact game popups (pause, out of mistakes, confirmations). */
+export const POPUP = {
+  width: 280,
+  radius: 20,
+  padding: 20,
+  titleSize: 18,
+  buttonHeight: 48,
+  buttonGap: 10,
+  /** 40% of the Midnight background, no blur: the board stays visible behind it. */
+  scrim: 'rgba(18,20,23,0.4)',
+} as const;
+
+/** Game top bar: 24px line icons in 48dp tap areas (44 minimum), 4px apart. */
+export const TOP_BAR = {
+  height: 56,
+  iconSize: 24,
+  target: 48,
+  minTarget: 44,
+  gap: 4,
+  /** Music off: the note at 60% opacity with a diagonal slash. */
+  offOpacity: 0.6,
+} as const;
+
+/** Progress bar: 6px track with fully rounded ends, the percentage above it in 12px semibold. */
+export const PROGRESS = { trackHeight: 6, labelSize: 12, gap: 4 } as const;
 
 /** Hint button: free hints left, watch an ad for +1, or used up (3 rewarded hints used). */
 export type HintButtonKind = 'free' | 'ad' | 'used';

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { translator, type Translate } from '@/i18n';
-import { DEFAULT_SETTINGS, parseSettings, type Settings } from '@/lib/settings-model';
+import { DEFAULT_SETTINGS, migrateSettings, type Settings } from '@/lib/settings-model';
 import { KEYS, readRaw, writeRaw } from '@/lib/storage';
 
 type SettingsValue = {
@@ -26,7 +26,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     let alive = true;
     readRaw(KEYS.settings).then((raw) => {
       if (!alive) return;
-      setSettings(parseSettings(raw));
+      const { settings: next, changed } = migrateSettings(raw);
+      // Rewrite once so dropped keys (the old three-mistake toggle) leave storage.
+      if (changed) void writeRaw(KEYS.settings, JSON.stringify(next));
+      setSettings(next);
       setLoaded(true);
     });
     return () => {

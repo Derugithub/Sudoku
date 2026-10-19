@@ -50,7 +50,6 @@ export default function SettingsScreen() {
           </AppText>
           <Divider />
           <ToggleRow label={t('settings.mistakeCheck')} help={t('settings.mistakeCheckHelp')} value={s.mistakeCheck} onChange={(v) => update({ mistakeCheck: v })} />
-          <ToggleRow label={t('settings.mistakeLimit')} value={s.mistakeLimit} disabled={!s.mistakeCheck} onChange={(v) => update({ mistakeLimit: v })} />
           <ToggleRow label={t('settings.highlightUnits')} value={s.highlightUnits} onChange={(v) => update({ highlightUnits: v })} />
           <ToggleRow label={t('settings.highlightSame')} value={s.highlightSame} onChange={(v) => update({ highlightSame: v })} />
           <ToggleRow label={t('settings.autoRemoveNotes')} value={s.autoRemoveNotes} onChange={(v) => update({ autoRemoveNotes: v })} />
@@ -60,6 +59,7 @@ export default function SettingsScreen() {
         <SectionTitle>{t('settings.feedback')}</SectionTitle>
         <Panel>
           <ToggleRow label={t('settings.sound')} value={s.sound} onChange={(v) => update({ sound: v })} />
+          <ToggleRow label={t('settings.music')} help={t('settings.musicHelp')} value={s.music} onChange={(v) => update({ music: v })} />
           <ToggleRow label={t('settings.vibration')} value={s.vibration} onChange={(v) => update({ vibration: v })} />
         </Panel>
 
