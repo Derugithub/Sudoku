@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Writes every Sudoku Calm sound effect to assets/sounds as small mono WAV files.
+ * Writes every Sudoku sound effect to assets/sounds as small mono WAV files.
  * Everything is synthesised here from noise and tones with a seeded PRNG, so the output is
  * deterministic and owned by the project (no third-party audio). Run: node scripts/generate-sounds.mjs
  */

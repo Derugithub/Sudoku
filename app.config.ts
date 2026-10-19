@@ -6,8 +6,8 @@ import { checkLiveAdUnits, LIVE_AD_UNITS_ENABLED } from './src/lib/ads/productio
 /**
  * app.json stays the source for everything except the resolved AdMob Android app ID and ads mode.
  * During closed testing the real units are commented out, so every build, production included,
- * uses Google's test units. Sudoku Calm has no AdMob app yet, so the app ID is Google's sample ID;
- * that is accepted only while real units are off. Once real units are uncommented, a live build
+ * uses Google's test units. The real AdMob app ID is set; Google's sample app ID is still
+ * accepted only while real units are off. Once real units are uncommented, a live build
  * throws if a placement has no real unit ID or the app ID is still the sample.
  *
  * The Expo plugin options and the root `react-native-google-mobile-ads` block are separate.

@@ -86,7 +86,7 @@ export default function SettingsScreen() {
           <LinkRow
             icon="mail-outline"
             label={t('settings.support')}
-            onPress={() => void Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Sudoku Calm')}`).catch(() => undefined)}
+            onPress={() => void Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Sudoku')}`).catch(() => undefined)}
           />
           <AppText variant="meta" color={p.textMuted} style={styles.version}>
             {t('settings.version', { v: version })}

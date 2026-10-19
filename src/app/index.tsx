@@ -77,7 +77,7 @@ export default function Home() {
   );
 }
 
-// The bare Sudoku Calm mark (no tile), with @2x/@3x versions picked by screen density.
+// The bare Sudoku mark (no tile), with @2x/@3x versions picked by screen density.
 const LOGO_LIGHT = require('../../assets/images/logo-mark.png');
 const LOGO_DARK = require('../../assets/images/logo-mark-dark.png');
 

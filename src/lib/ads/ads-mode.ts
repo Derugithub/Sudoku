@@ -32,6 +32,6 @@ export function isTestAdsMode(): boolean {
 /** Lifecycle logs for dev and preview. Production live builds stay quiet. */
 export function logAdDecision(message: string, detail?: Record<string, unknown>): void {
   if (!isTestAdsMode()) return;
-  if (detail) console.log(`[Sudoku Calm ads] ${message}`, detail);
-  else console.log(`[Sudoku Calm ads] ${message}`);
+  if (detail) console.log(`[Sudoku ads] ${message}`, detail);
+  else console.log(`[Sudoku ads] ${message}`);
 }
