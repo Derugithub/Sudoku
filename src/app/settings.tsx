@@ -83,6 +83,9 @@ export default function SettingsScreen() {
           {ads.privacyOptionsRequired ? (
             <LinkRow icon="options-outline" label={t('settings.privacyOptions')} onPress={() => void ads.openPrivacyOptions()} />
           ) : null}
+          {__DEV__ ? (
+            <LinkRow icon="refresh-outline" label="Reset consent (dev only)" onPress={() => void ads.resetConsentForTesting()} />
+          ) : null}
           <LinkRow
             icon="mail-outline"
             label={t('settings.support')}

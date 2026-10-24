@@ -23,6 +23,8 @@ export type AdsContextValue = {
    */
   puzzleFinished: (input: { rewardedThisGame: boolean }) => Promise<boolean>;
   openPrivacyOptions: () => Promise<void>;
+  /** Development only: forgets saved consent and runs the consent flow again. No-op in release builds. */
+  resetConsentForTesting: () => Promise<void>;
 };
 
 const NO_OFFERS: Record<RewardedKind, boolean> = { hint: false, second_chance: false, daily_unlock: false, ad_free: false };
@@ -37,6 +39,7 @@ export const idleAdsContext: AdsContextValue = {
   showRewarded: async () => false,
   puzzleFinished: async () => false,
   openPrivacyOptions: async () => undefined,
+  resetConsentForTesting: async () => undefined,
 };
 
 export const AdsContext = createContext<AdsContextValue>(idleAdsContext);

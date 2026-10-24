@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
+import type { AdsConsentInfo } from 'react-native-google-mobile-ads';
 
 import { TEST_DEVICE_IDENTIFIERS } from '@/lib/ads/ad-config';
 import {
@@ -19,7 +20,7 @@ import {
 import { getUnitId } from '@/lib/ads/ad-units';
 import { AdsContext, type AdsContextValue } from '@/lib/ads/ads-context';
 import { isTestAdsMode, logAdDecision } from '@/lib/ads/ads-mode';
-import { gatherConsent, privacyOptionsRequired, showPrivacyOptions } from '@/lib/ads/consent';
+import { gatherConsent, privacyOptionsRequired, resetConsent, showPrivacyOptions } from '@/lib/ads/consent';
 import { loadGoogleMobileAds } from '@/lib/ads/native-ads';
 import { blockMusic, unblockMusic } from '@/lib/music';
 import { KEYS, readRaw, writeRaw, writeRawSync } from '@/lib/storage';
@@ -36,8 +37,10 @@ type View = { state: AdState; offers: Record<RewardedKind, boolean>; bannerAllow
 
 /**
  * Gathers UMP consent first, initialises the SDK only when consent allows ad requests, keeps one
- * interstitial and one rewarded ad preloaded, and applies the caps in ad-policy.ts. Any failure
- * leaves ads off; the game never waits on an ad. Background music pauses while any ad is on screen.
+ * interstitial and one rewarded ad preloaded, and applies the caps in ad-policy.ts. Consent is
+ * re-read after the privacy options form closes, so a change takes effect at once. A failed consent
+ * request falls back to the consent saved on the device; any other failure leaves ads off. The game
+ * never waits on an ad. Background music pauses while any ad is on screen.
  */
 export function AdsProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -52,6 +55,8 @@ export function AdsProvider({ children }: { children: ReactNode }) {
   const stateRef = useRef<AdState>(emptyAdState());
   const loadedRef = useRef(false);
   const readyRef = useRef(false);
+  const startRef = useRef<Promise<void> | null>(null);
+  const aliveRef = useRef(true);
   const interstitial = useRef<{ ad: Interstitial; loaded: boolean } | null>(null);
   const rewarded = useRef<{ ad: Rewarded; loaded: boolean } | null>(null);
   const rewardResolver = useRef<((earned: boolean) => void) | null>(null);
@@ -107,6 +112,11 @@ export function AdsProvider({ children }: { children: ReactNode }) {
     };
   }, [commit, refresh]);
 
+  /** Ad requests only go out while consent allows them. */
+  const loadIfAllowed = useCallback((ad: { load: () => void }) => {
+    if (readyRef.current) ad.load();
+  }, []);
+
   const setUp = useCallback(() => {
     const ads = loadGoogleMobileAds();
     const testMode = isTestAdsMode();
@@ -128,16 +138,16 @@ export function AdsProvider({ children }: { children: ReactNode }) {
         ad.addAdEventListener(ads.AdEventType.CLOSED, () => {
           holder.loaded = false;
           unblockMusic('interstitial');
-          ad.load();
+          loadIfAllowed(ad);
         }),
         ad.addAdEventListener(ads.AdEventType.ERROR, (error) => {
           holder.loaded = false;
           unblockMusic('interstitial');
           logAdDecision('interstitial failed', { error: String(error) });
-          timers.current.push(setTimeout(() => ad.load(), RETRY_MS));
+          timers.current.push(setTimeout(() => loadIfAllowed(ad), RETRY_MS));
         }),
       );
-      ad.load();
+      loadIfAllowed(ad);
     }
 
     const rewardedId = getUnitId('game_rewarded', { testMode, testIds });
@@ -163,7 +173,7 @@ export function AdsProvider({ children }: { children: ReactNode }) {
           holder.loaded = false;
           setRewardedReady(false);
           finish(earned.current);
-          ad.load();
+          loadIfAllowed(ad);
           refresh();
         }),
         ad.addAdEventListener(ads.AdEventType.ERROR, (error) => {
@@ -171,37 +181,71 @@ export function AdsProvider({ children }: { children: ReactNode }) {
           setRewardedReady(false);
           logAdDecision('rewarded failed', { error: String(error) });
           finish(false);
-          timers.current.push(setTimeout(() => ad.load(), RETRY_MS));
+          timers.current.push(setTimeout(() => loadIfAllowed(ad), RETRY_MS));
           refresh();
         }),
       );
-      ad.load();
+      loadIfAllowed(ad);
     }
-  }, [refresh]);
+  }, [refresh, loadIfAllowed]);
 
-  // UMP consent first, then the SDK. Ads stay off on any failure.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const info = await gatherConsent();
-        if (cancelled) return;
-        setPrivacyRequired(privacyOptionsRequired(info));
-        if (!info.canRequestAds) {
-          logAdDecision('consent does not allow ad requests');
-          return;
-        }
+  /** Initialises the SDK and creates the ad instances once; concurrent callers share one run. */
+  const startAds = useCallback((): Promise<void> => {
+    if (!startRef.current) {
+      startRef.current = (async () => {
         const ads = loadGoogleMobileAds();
         if (isTestAdsMode()) {
           await ads.default().setRequestConfiguration({ testDeviceIdentifiers: [...TEST_DEVICE_IDENTIFIERS] });
         }
         await ads.default().initialize();
-        if (cancelled) return;
-        setUp();
-        readyRef.current = true;
-        setReady(true);
+      })().catch((error: unknown) => {
+        startRef.current = null;
+        throw error;
+      });
+    }
+    return startRef.current;
+  }, []);
+
+  /** Turns ads on or off to match the latest consent. Safe to call again after any consent change. */
+  const applyConsent = useCallback(
+    async (info: AdsConsentInfo) => {
+      if (!aliveRef.current) return;
+      setPrivacyRequired(privacyOptionsRequired(info));
+      if (!info.canRequestAds) {
+        // Consent was withdrawn or never given: stop offering and stop requesting.
+        readyRef.current = false;
+        setReady(false);
+        setRewardedReady(false);
         refresh();
-        logAdDecision('ads ready');
+        logAdDecision('consent does not allow ad requests');
+        return;
+      }
+      await startAds();
+      if (!aliveRef.current) return;
+      const firstStart = !interstitial.current && !rewarded.current;
+      readyRef.current = true;
+      if (firstStart) {
+        setUp();
+      } else {
+        // Ads were switched off earlier: reload whatever is not already loaded.
+        for (const holder of [interstitial.current, rewarded.current]) {
+          if (holder && !holder.loaded) holder.ad.load();
+        }
+      }
+      setReady(true);
+      refresh();
+      logAdDecision('ads ready');
+    },
+    [refresh, setUp, startAds],
+  );
+
+  // UMP consent first, then the SDK. A failed consent request falls back to saved consent (see
+  // consent.ts); an SDK failure leaves ads off.
+  useEffect(() => {
+    aliveRef.current = true;
+    (async () => {
+      try {
+        await applyConsent(await gatherConsent());
       } catch (error) {
         logAdDecision('ads disabled', { error: String(error) });
       }
@@ -209,11 +253,16 @@ export function AdsProvider({ children }: { children: ReactNode }) {
     const pending = timers.current;
     const subs = unsubscribers.current;
     return () => {
-      cancelled = true;
+      aliveRef.current = false;
+      readyRef.current = false;
       pending.forEach(clearTimeout);
+      pending.length = 0;
       subs.forEach((unsubscribe) => unsubscribe());
+      subs.length = 0;
+      interstitial.current = null;
+      rewarded.current = null;
     };
-  }, [setUp, refresh]);
+  }, [applyConsent]);
 
   const showRewarded = useCallback(
     async (kind: RewardedKind): Promise<boolean> => {
@@ -276,12 +325,22 @@ export function AdsProvider({ children }: { children: ReactNode }) {
 
   const openPrivacyOptions = useCallback(async () => {
     try {
-      const info = await showPrivacyOptions();
-      setPrivacyRequired(privacyOptionsRequired(info));
+      await applyConsent(await showPrivacyOptions());
     } catch (error) {
       logAdDecision('privacy options failed', { error: String(error) });
     }
-  }, []);
+  }, [applyConsent]);
+
+  /** Development only: clears saved consent and runs the consent flow again. */
+  const resetConsentForTesting = useCallback(async () => {
+    if (!__DEV__) return;
+    try {
+      resetConsent();
+      await applyConsent(await gatherConsent());
+    } catch (error) {
+      logAdDecision('consent reset failed', { error: String(error) });
+    }
+  }, [applyConsent]);
 
   const value = useMemo<AdsContextValue>(
     () => ({
@@ -294,8 +353,9 @@ export function AdsProvider({ children }: { children: ReactNode }) {
       showRewarded,
       puzzleFinished,
       openPrivacyOptions,
+      resetConsentForTesting,
     }),
-    [ready, privacyRequired, rewardedReady, view, showRewarded, puzzleFinished, openPrivacyOptions],
+    [ready, privacyRequired, rewardedReady, view, showRewarded, puzzleFinished, openPrivacyOptions, resetConsentForTesting],
   );
 
   return <AdsContext.Provider value={value}>{children}</AdsContext.Provider>;
