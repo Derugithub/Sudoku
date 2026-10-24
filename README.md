@@ -56,9 +56,9 @@ The app icon, adaptive icon layers, splash and favicon in `assets/images` are th
 
 ## Before release
 
-- Create the AdMob app and put its Android app ID in `src/lib/ads/android-app-id.js`, in `app.json` (plugin `androidAppId` and root `android_app_id`) and in the `eas.json` production env `ADMOB_ANDROID_APP_ID`. It currently uses Google's sample ID.
-- Fill in `src/lib/ads/production-unit-ids.js` with the real ad unit IDs. It is `null` now, so only test ads run.
-- Publish the privacy policy page at the URL above.
+- The real AdMob Android app ID (`ca-app-pub-4342572133101591~8389629390`) is already set in `src/lib/ads/android-app-id.js`, in `app.json` (plugin `androidAppId` and root `android_app_id`) and in the `eas.json` production env `ADMOB_ANDROID_APP_ID`. Nothing to do there.
+- The privacy policy page is published at https://derugithub.github.io/Privacy-policy/sudoku/ and linked from Settings.
+- Still pending: switch on real ads at the public release ("App is public"). The real ad unit IDs are already filled in `src/lib/ads/production-unit-ids.js`, but they are commented out (`PRODUCTION_UNIT_IDS = null`), so every build, production included, only requests Google test ads. Follow the steps at the top of that file: delete the `null` line, uncomment the block, then build with the production profile.
 
 ## License
 
