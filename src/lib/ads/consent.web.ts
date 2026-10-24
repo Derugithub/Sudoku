@@ -6,6 +6,10 @@ export async function gatherConsent(): Promise<ConsentInfo> {
   return idle;
 }
 
+export async function readSavedConsent(): Promise<ConsentInfo> {
+  return idle;
+}
+
 export function privacyOptionsRequired(): boolean {
   return false;
 }
@@ -13,3 +17,5 @@ export function privacyOptionsRequired(): boolean {
 export async function showPrivacyOptions(): Promise<ConsentInfo> {
   return idle;
 }
+
+export function resetConsent(): void {}
