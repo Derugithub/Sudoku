@@ -120,6 +120,11 @@ export const en = {
   'stats.bestStreak': 'Best streak',
   'stats.perfect': 'Perfect wins',
   'stats.none': '—',
+  'stats.overall': 'Overall',
+  'stats.tabs': 'Statistics sections',
+  'stats.byLevel': 'By level',
+  'stats.emptyAll': 'No games yet. Finish a puzzle and your statistics will show up here.',
+  'stats.emptyLevel': 'No {level} games yet. Play one to see your statistics.',
 
   'settings.title': 'Settings',
   'settings.appearance': 'Appearance',

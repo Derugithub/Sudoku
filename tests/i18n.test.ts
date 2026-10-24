@@ -17,3 +17,8 @@ test('every technique and level has a name, English only in v1', () => {
   assert.deepEqual(LANGUAGES.map((l) => l.code), ['en']);
   assert.equal(t('app.name'), 'Sudoku');
 });
+
+test('the Statistics tabs and empty states have strings', () => {
+  for (const key of ['stats.overall', 'stats.tabs', 'stats.byLevel', 'stats.emptyAll', 'stats.emptyLevel'] as const) assert.ok(en[key].length > 0, key);
+  assert.equal(t('stats.emptyLevel', { level: 'Hard' }), 'No Hard games yet. Play one to see your statistics.');
+});

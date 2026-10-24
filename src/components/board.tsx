@@ -73,7 +73,7 @@ export function Board(props: BoardProps) {
         const same = props.highlightDigit > 0 && cell.value === props.highlightDigit;
         const showWrong = props.showErrors && cell.wrong;
         const bg = isSel
-          ? p.selected
+          ? p.cellSelected
           : showWrong
             ? p.errorBg
             : i === props.hintTarget
@@ -103,6 +103,7 @@ export function Board(props: BoardProps) {
             noteColor={p.notes}
             noteHitColor={p.player}
             rippleColor={p.ripple}
+            selectedBorderColor={p.cellSelectedBorder}
             rippleId={props.ripple.id}
             rippleDelay={props.ripple.delays.get(i) ?? -1}
             label={cellAccessibility(props.t, i, cell)}
@@ -145,6 +146,7 @@ type CellProps = {
   noteColor: string;
   noteHitColor: string;
   rippleColor: string;
+  selectedBorderColor: string;
   rippleId: number;
   rippleDelay: number;
   label: string;
@@ -197,7 +199,11 @@ const Cell = memo(function Cell(props: CellProps) {
       accessibilityState={{ selected: props.selected }}
       onPressIn={onPressIn}
       onPress={onRelease}
-      style={[styles.cell, { left: props.left, top: props.top, width: size, height: size, backgroundColor: props.bg }]}>
+      style={[
+        styles.cell,
+        { left: props.left, top: props.top, width: size, height: size, backgroundColor: props.bg },
+        props.selected ? { borderWidth: BOARD.selectedBorder, borderColor: props.selectedBorderColor } : null,
+      ]}>
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: props.rippleColor }, flashStyle]} />
       {value ? (
         <Animated.View style={digitStyle}>
