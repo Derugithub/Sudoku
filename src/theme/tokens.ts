@@ -30,6 +30,10 @@ export type Palette = {
   given: string;
   player: string;
   selected: string;
+  /** Tapped cell fill: its own soft violet, apart from the blue row/column/box and same-number tints, error red and hint yellow. */
+  cellSelected: string;
+  /** Outline drawn inside the tapped cell. */
+  cellSelectedBorder: string;
   unitTint: string;
   sameNumber: string;
   notes: string;
@@ -73,6 +77,8 @@ export const PALETTES: Record<ThemeName, Palette> = {
     given: '#2B2D42',
     player: '#3A6EA5',
     selected: '#DCE8F5',
+    cellSelected: '#E4DDFA',
+    cellSelectedBorder: '#5B4BB5',
     unitTint: '#EEF2F7',
     sameNumber: '#C8DAEF',
     notes: '#5F646D',
@@ -110,6 +116,8 @@ export const PALETTES: Record<ThemeName, Palette> = {
     given: '#E8E6E1',
     player: '#7FB3E8',
     selected: '#26364A',
+    cellSelected: '#342F5E',
+    cellSelectedBorder: '#B9ABFF',
     unitTint: '#20262E',
     sameNumber: '#2C4560',
     notes: '#9AA0A8',
@@ -147,6 +155,8 @@ export const PALETTES: Record<ThemeName, Palette> = {
     given: '#000000',
     player: '#0033A0',
     selected: '#FFE36B',
+    cellSelected: '#FFE36B',
+    cellSelectedBorder: '#000000',
     unitTint: '#E6E6E6',
     sameNumber: '#B5D0FF',
     notes: '#2E2E2E',
@@ -217,6 +227,8 @@ export const BOARD = {
   minCell: 40,
   lineThin: 1,
   lineBox: 2,
+  /** Outline width inside the tapped cell. */
+  selectedBorder: 2,
   radius: 10,
 } as const;
 
@@ -228,8 +240,12 @@ export const MOTION = {
   placeMs: 160,
   rippleMs: 250,
   rippleStaggerMs: 22,
-  confettiMs: 1600,
-  confettiCount: 36,
+  /** Win confetti: full-screen fall, each piece takes minMs..maxMs after a random delay. */
+  confettiCount: 90,
+  confettiStaticCount: 28,
+  confettiMinMs: 2600,
+  confettiMaxMs: 4400,
+  confettiDelayMs: 1000,
   progressMs: 200,
 } as const;
 

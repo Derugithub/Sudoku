@@ -115,6 +115,21 @@ function tone({ f0, f1 = f0, start = 0, dur, attack = 0.004, decay = 0.08, gain 
   };
 }
 
+/** One soft bell note: a triangle with a quiet octave above it. */
+function bell(f, start, dur, decay) {
+  return [
+    tone({ f0: f, start, dur, decay, gain: 0.5, shape: 'triangle' }),
+    tone({ f0: f * 2, start, dur: dur * 0.6, decay: decay * 0.5, gain: 0.1 }),
+  ];
+}
+
+/** Adds one decaying echo `delay` seconds behind the sound. */
+function echo(buf, delay, level) {
+  const d = Math.floor(delay * SFX_RATE);
+  for (let i = d; i < buf.length; i++) buf[i] += buf[i - d] * level;
+  return buf;
+}
+
 const sfx = {
   // Soft tap when a digit is placed: a short damped wooden tick.
   tap: [
@@ -151,16 +166,20 @@ const sfx = {
     ]),
     0.45,
   ],
-  // Short three-note win melody.
+  // Win jingle (~1.9 s): a bright ascending C major arpeggio that lands on a ringing C-E-G chord,
+  // each note a soft bell (triangle plus a quiet octave) with a light echo for sparkle.
   win: [
-    render(1.1, SFX_RATE, [
-      tone({ f0: 523.25, start: 0, dur: 0.4, decay: 0.16, gain: 0.55, shape: 'triangle' }),
-      tone({ f0: 659.25, start: 0.18, dur: 0.4, decay: 0.16, gain: 0.55, shape: 'triangle' }),
-      tone({ f0: 783.99, start: 0.36, dur: 0.74, decay: 0.32, gain: 0.6, shape: 'triangle', vibrato: 3, vibratoRate: 5 }),
-      tone({ f0: 1567.98, start: 0.36, dur: 0.5, decay: 0.18, gain: 0.12 }),
-      tone({ f0: 261.63, start: 0.36, dur: 0.74, decay: 0.4, gain: 0.25 }),
-    ]),
-    0.5,
+    echo(
+      render(1.9, SFX_RATE, [
+        ...[523.25, 659.25, 783.99, 1046.5, 1318.5].flatMap((f, i) => bell(f, i * 0.115, 0.5, 0.11)),
+        ...[1046.5, 1318.5, 1568].flatMap((f) => bell(f, 0.6, 1.3, 0.38)),
+        tone({ f0: 261.63, start: 0.6, dur: 1.3, decay: 0.5, gain: 0.3 }),
+        tone({ f0: 3136, start: 0.6, dur: 0.5, decay: 0.12, gain: 0.07 }),
+      ]),
+      0.16,
+      0.28,
+    ),
+    0.6,
   ],
 };
 

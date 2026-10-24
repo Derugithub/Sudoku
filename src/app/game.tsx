@@ -1,7 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Redirect, router, useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { AppState, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { AppState, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Board, snapBoardSize, type BoardCell } from '@/components/board';
@@ -567,9 +566,10 @@ function WinSheet({
   const p = usePalette();
   return (
     <View style={[StyleSheet.absoluteFill, styles.sheetBackdrop, { backgroundColor: p.overlay }]} accessibilityViewIsModal>
-      <Confetti width={width} height={height} seed={game.startedAt % 997} />
       <View style={[styles.sheet, { backgroundColor: p.surface, borderColor: p.border }]}>
-        <Ionicons name="sparkles" size={36} color={difficultyColor(game.level, p)} />
+        <Text accessible={false} importantForAccessibility="no" style={styles.celebration}>
+          🎉
+        </Text>
         <AppText variant="title" accessibilityRole="header">
           {game.daily ? t('win.dailyTitle') : t('win.title')}
         </AppText>
@@ -590,6 +590,7 @@ function WinSheet({
         )}
         <Button label={t('win.home')} kind="secondary" disabled={busy} onPress={() => onLeave('home')} style={styles.full} />
       </View>
+      <Confetti width={width} height={height} seed={game.startedAt % 997} />
     </View>
   );
 }
@@ -630,4 +631,6 @@ const styles = StyleSheet.create({
   stat: { alignItems: 'center', gap: 2 },
   tabular: { fontVariant: ['tabular-nums'] },
   full: { alignSelf: 'stretch' },
+  // The emoji is not in Inter, so it uses the system emoji font. The line height leaves room so Android does not clip it.
+  celebration: { fontSize: 72, lineHeight: 90, textAlign: 'center' },
 });

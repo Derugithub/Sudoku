@@ -54,6 +54,41 @@ export function winRate(s: LevelStats): number {
   return s.played > 0 ? s.won / s.played : 0;
 }
 
+/** Totals across every level, for the Overall tab. Streaks and best times stay per level. */
+export type OverallStats = {
+  played: number;
+  won: number;
+  perfect: number;
+  totalWinMs: number;
+  /** The longest win streak reached on any one level. */
+  bestStreak: number;
+};
+
+export function overallStats(stats: Stats): OverallStats {
+  const total: OverallStats = { played: 0, won: 0, perfect: 0, totalWinMs: 0, bestStreak: 0 };
+  for (const level of LEVELS) {
+    const s = stats[level];
+    total.played += s.played;
+    total.won += s.won;
+    total.perfect += s.perfect;
+    total.totalWinMs += s.totalWinMs;
+    total.bestStreak = Math.max(total.bestStreak, s.bestStreak);
+  }
+  return total;
+}
+
+export function overallAverageMs(o: OverallStats): number | null {
+  return o.won > 0 ? Math.round(o.totalWinMs / o.won) : null;
+}
+
+export function overallWinRate(o: OverallStats): number {
+  return o.played > 0 ? o.won / o.played : 0;
+}
+
+/** The Statistics tabs: a summary plus one per difficulty level. */
+export type StatsTab = 'overall' | Level;
+export const STATS_TABS: readonly StatsTab[] = ['overall', ...LEVELS];
+
 export function parseStats(raw: string | null): Stats {
   const base = emptyStats();
   if (!raw) return base;
