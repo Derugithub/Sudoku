@@ -1,4 +1,4 @@
-/** Hosted privacy policy, linked from Settings. The page still has to be published. */
+/** Hosted privacy policy, linked from Settings. The page is published and live. */
 export const PRIVACY_POLICY_URL = 'https://derugithub.github.io/Privacy-policy/sudoku/';
 
 /** Support address shown in Settings and the store notes. */
